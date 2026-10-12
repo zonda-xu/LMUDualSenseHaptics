@@ -1,0 +1,19 @@
+# Build output
+**/bin/
+**/obj/
+artifacts/
+.vs/
+.idea/
+*.user
+*.suo
+# Local configuration and diagnostic captures
+profile.json
+profile.json.backup-*
+debug-*.jsonl
+telemetry-*.jsonl
+*.replay.jsonl
+# OS / Python cache
+.DS_Store
+Thumbs.db
+__pycache__/
+*.pyc

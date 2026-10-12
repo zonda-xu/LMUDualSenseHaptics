@@ -1,0 +1,70 @@
+name: Windows build and release
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Check project version and release tag
+        id: version
+        shell: pwsh
+        run: |
+          [xml]$project = Get-Content src/LMUDualSenseHaptics/LMUDualSenseHaptics.csproj
+          $version = [string]$project.Project.PropertyGroup.Version
+          if ($version -notmatch '^\d+\.\d+\.\d+$') { throw 'Invalid project version' }
+          if ($env:GITHUB_REF_TYPE -eq 'tag' -and $env:GITHUB_REF_NAME -ne "v$version") {
+            throw 'Release tag must match the project version'
+          }
+          "version=$version" >> $env:GITHUB_OUTPUT
+      - name: Build, test and package
+        shell: pwsh
+        run: ./scripts/build.ps1
+      - name: Upload Windows application
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-x64-v${{ steps.version.outputs.version }}
+          path: |
+            artifacts/LMUDualSenseHaptics-win-x64-v${{ steps.version.outputs.version }}.zip
+            artifacts/LMUDualSenseHaptics-win-x64-v${{ steps.version.outputs.version }}.zip.sha256
+          if-no-files-found: error
+      - name: Upload build logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-logs
+          path: artifacts/build-logs/
+          if-no-files-found: ignore
+
+  release:
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: windows-x64-*
+          merge-multiple: true
+          path: release-assets
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: >-
+          gh release create "$RELEASE_TAG"
+          release-assets/*.zip release-assets/*.sha256
+          --verify-tag --title "LMU DualSense Haptics $RELEASE_TAG"
+          --notes-file docs/RELEASE_NOTES.md

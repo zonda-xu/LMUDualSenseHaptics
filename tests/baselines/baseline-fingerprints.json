@@ -1,0 +1,15 @@
+{
+  "source": "user-supplied LMUDualSenseHaptics-source-v0.3.0.zip",
+  "unchanged_files": {
+    "Hardware/TriggerEffect.cs": "b5df8eff87a553f4a0545b3da69228080258d71491f9d8f914dca322e3965b2f",
+    "Hardware/DualSenseReportBuilder.cs": "f5589438b0dcedecb0837cce2e2a8b1d96ceeea05e1035f37bf351d425d239b2",
+    "Hardware/DualSenseHidDevice.cs": "fad80079cd47cc16ca4d34c03bb9b65ce9b14f7b37beda5d547fb93d2d96fa02",
+    "Hardware/NativeMethods.cs": "8c6a090d8cd20198b0a02f2850d5b09f0680a882a303f93b2daacbea393ecaea",
+    "Runtime/HidOutputSession.cs": "ef3f8d6dd9bb63ae7b6d76343ec7e276bd74f86faf165e69228648f266afee1c"
+  },
+  "fragments": {
+    "trigger_map": "87fa58b776c9102736c1d917248e50327950f8291c51936e81b736e878355e8c",
+    "engine_expression": "17544148012c219bafe9ff7a9ec574d1feee09ad7a4de026f235b2521dcca169",
+    "trigger_base_curves": "65da61f24ccb78d893b631626e97d18aca40571d0ca42e91d4f73063eaa2cd01"
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "source": "user-uploaded LMUDualSenseHaptics-source-v0.4.0.zip",
+  "unchanged_files": {
+    "Hardware/TriggerEffect.cs": "b5df8eff87a553f4a0545b3da69228080258d71491f9d8f914dca322e3965b2f",
+    "Haptics/TriggerEngine.cs": "4ae4af54aece319882e823fba05baa87ce1e0b940d6bc696c4d18dbc17157118",
+    "Haptics/GripEngine.cs": "1af7607f43033771b3923e94d4e6af2f24ca4389803a4d3cbb3244c16f53c721",
+    "Haptics/FrameMixer.cs": "468031bc3d19d43e7bcfc9a4f1943e875e37f69f329f6d8b39eb63c6fc990cfb",
+    "Telemetry/LmuLayout.cs": "efa44609986b7881206ef37bc6067c1e1231e0c034ec00228ceda49c5e382eac",
+    "Core/RoadResponse.cs": "46e1985a276cf208dcc3a981d703643373d07d5f5369ec85a11ac2d4533ffa8c",
+    "Config/ProfileStore.cs": "777712f95e1362d173ba78ea88693ad6821a471c0b1b00fb452015b16688b0eb",
+    "Runtime/FeedbackLoop.cs": "a73dd03813f9eb16137b785da9b56d8d3ab08debefc86c32a3e607225068cc64"
+  }
+}
