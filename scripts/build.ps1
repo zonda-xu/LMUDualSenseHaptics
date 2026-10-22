@@ -5,7 +5,9 @@ if (-not (Get-Command dotnet -ErrorAction SilentlyContinue)) {
 }
 [xml]$project = Get-Content 'src/LMUDualSenseHaptics/LMUDualSenseHaptics.csproj'
 $version = [string]$project.Project.PropertyGroup.Version
-if ($version -notmatch '^\d+\.\d+\.\d+$') { throw 'Invalid project version.' }
+if ($version -notmatch '^\d+\.\d+\.\d+(-[a-z0-9.-]+)?$') { throw 'Invalid project version.' }
+$releaseTag = [string]$project.Project.PropertyGroup.ReleaseTag
+if ($releaseTag -notmatch '^v[0-9][a-zA-Z0-9.-]*$') { throw 'Invalid release tag.' }
 New-Item -ItemType Directory -Force 'artifacts/build-logs' | Out-Null
 function Invoke-Dotnet {
     param([string]$LogName, [string[]]$Arguments)
@@ -19,7 +21,7 @@ if (Test-Path 'artifacts/win-x64') { Remove-Item 'artifacts/win-x64' -Recurse -F
 Invoke-Dotnet -LogName '03-publish.txt' -Arguments @('publish','src/LMUDualSenseHaptics','-c','Release','-r','win-x64','--self-contained','true','-p:EnableWindowsTargeting=true','-m:1','-o','artifacts/win-x64')
 Copy-Item README.md,LICENSE,THIRD_PARTY_NOTICES.md 'artifacts/win-x64' -Force
 Copy-Item docs 'artifacts/win-x64/docs' -Recurse -Force
-$archive = "artifacts/LMUDualSenseHaptics-win-x64-v$version.zip"
+$archive = "artifacts/LMUDualSenseHaptics-win-x64-$releaseTag.zip"
 Compress-Archive -Path 'artifacts/win-x64/*' -DestinationPath $archive -Force
 $checksum = (Get-FileHash $archive -Algorithm SHA256).Hash.ToLowerInvariant()
 "$checksum  $(Split-Path $archive -Leaf)" | Set-Content "$archive.sha256" -Encoding ASCII

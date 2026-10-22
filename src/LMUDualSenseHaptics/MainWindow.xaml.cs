@@ -45,8 +45,9 @@ public partial class MainWindow:Window
             AddFeature(ExtraTriggerSettings,"Wheelspin","R2 空转提示","加速时车轮空转，通过 R2 脉冲提醒；需关闭上方的 TC 专用选项。");
             AddFeature(ExtraTriggerSettings,"Redline","R2 转速上限提示","接近引擎转速上限时，通过 R2 脉冲提醒；需关闭上方的 TC 专用选项。");
             AddFeature(BrakeSettings,"BrakeBase","L2 基础阻力","按下刹车时提供逐渐增强的阻力。");
-            AddFeature(BrakeSettings,"Abs","ABS 提示","防抱死系统介入时，L2 产生脉冲。");
-            AddFeature(BrakeSettings,"Lock","抱死提示","检测到车轮抱死时，L2 产生脉冲。");
+            BrakeModeChoice.SelectedIndex=(int)runtime.Profile.BrakeMode;
+            AddFeature(BrakeSettings,"Abs","ABS 阻力墙","在 ABS 介入的刹车位置增加阻力，提醒停止继续深踩。");
+            AddFeature(BrakeSettings,"Lock","临界制动预警","无 ABS 时提前增加 L2 阻力；明显抱死时叠加短促的阻力变化。");
             AddFeature(RoadSettings,"Road","路面细节与冲击","通过左右握把感知路面纹理、颠簸和较大的垂向冲击。");
             AddFeature(RoadSettings,"Kerb","路肩反馈","压过路肩时，对应一侧的握把产生明显震动。");
             AddFeature(OtherGripSettings,"GripSlip","轮胎打滑","轮胎明显打滑时，握把震动提示抓地力下降。");
@@ -73,6 +74,13 @@ public partial class MainWindow:Window
             UpdateModeControls();
         }
         finally{building=false;}
+    }
+    private void BrakeModeChanged(object sender,SelectionChangedEventArgs e)
+    {
+        if(building||!IsInitialized||BrakeModeChoice is null||runtime.RecordingPath is not null)return;
+        if(BrakeModeChoice.SelectedIndex is <0 or >2)return;
+        try{runtime.SetProfile(runtime.Profile with{BrakeMode=(BrakeFeedbackMode)BrakeModeChoice.SelectedIndex});ChangedNotice();}
+        catch(Exception ex){Notify(ex.Message);}
     }
     private void AddFeature(StackPanel panel,string key,string name,string hint)
     {
@@ -216,7 +224,7 @@ public partial class MainWindow:Window
         ErrorText.Text=s.Error;ErrorBanner.Visibility=string.IsNullOrEmpty(s.Error)?Visibility.Collapsed:Visibility.Visible;
         ValidationText.Text=$"{s.Telemetry}\n手柄：{s.Device}\n参数：{s.ParameterSource}\n{s.LearningState}";
         int brake=EncodedPeak(s.Output.LeftTrigger),throttle=EncodedPeak(s.Output.RightTrigger);
-        BrakeOutputText.Text=brake==0?"释放":$"{brake} / 8";
+        BrakeOutputText.Text=brake==0?"释放":(s.LeftTriggerSource switch{"AbsWall"=>"ABS 阻力墙","BrakeLimit"=>"接近抱死","Lock"=>"抱死提醒",_=>"基础阻力"})+$" · {brake} / 8";
         ThrottleOutputText.Text=throttle==0?"自由行程":s.RightTriggerSource=="Tc"?$"TC · {throttle} / 8":$"{throttle} / 8";
         BrakeMeter.Value=brake;ThrottleMeter.Value=throttle;
         LeftGripMeter.Maximum=RightGripMeter.Maximum=audioMode?1:255;

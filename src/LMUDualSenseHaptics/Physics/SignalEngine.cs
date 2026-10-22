@@ -13,6 +13,7 @@ public sealed class WheelState
 }
 public sealed class SignalEngine
 {
+    public BrakeSignalEngine Braking {get;}=new();
     public RoadSignalEngine RoadSignals {get;}=new();
     public WheelState[] Wheels {get;private set;}=Enumerable.Range(0,4).Select(_=>new WheelState()).ToArray();
     public double Abs,Lock,Tc,Spin,Shift,Redline,SidePan,FrontShare,LeftRoad,RightRoad,Impact,ImpactPan,Scrape;
@@ -23,7 +24,7 @@ public sealed class SignalEngine
     private readonly Queue<(double T,Vector2 V)> velocityHistory=new();
     public void Reset()
     {
-        RoadSignals.Reset();
+        RoadSignals.Reset();Braking.Reset();
         Wheels=Enumerable.Range(0,4).Select(_=>new WheelState()).ToArray();
         Abs=Lock=Tc=Spin=Shift=Redline=SidePan=FrontShare=LeftRoad=RightRoad=Impact=ImpactPan=Scrape=0;
         ShiftStart=ImpactStart=pendingImpactUntil=lastImpactObserved=double.NegativeInfinity;
@@ -44,6 +45,7 @@ public sealed class SignalEngine
                 Wheels[i].PreviousSusp=f.Wheels[i].SuspDeflectionM;
                 Wheels[i].ForceReference=f.Wheels[i].SuspForceN;Wheels[i].LoadReference=f.Wheels[i].TireLoadN;
             }
+            Braking.Update(f,null,Wheels,p,c);
             velocityHistory.Enqueue((f.CapturedAtSec,new(f.LocalVxMps,f.LocalVzMps)));return;
         }
         RoadSignals.Update(f,c.RoadResponse,p.RoadSensitivity/100.0,p.AudioHaptics.DynamicKerbFallback);
@@ -115,7 +117,8 @@ public sealed class SignalEngine
         double ar=f.AbsIntervening?1:0,tr=f.TcIntervening?1:0;
         Abs=Env(Abs,ar*bg,dt,.032,.105);Tc=Env(Tc,tr*tg,dt,.060,.135);
         static double Cue(double ratio,double start,double full)=>ratio>=start?.25+.75*Smooth(start,full,ratio):0;
-        Lock=Env(Lock,(1-ar)*(f.Brake01>c.InputThreshold?1:0)*Wheels.Max(q=>q.Kappa is double k?Cue(Math.Max(0,-k),c.LockRatio,c.LockFullRatio):0)*sg,dt,.050,.135);
+        Braking.Update(f,previous,Wheels,p,c);
+        Lock=Braking.LockSeverity;
         Spin=Env(Spin,(1-tr)*(f.Throttle01>c.InputThreshold?1:0)*Wheels.Max(q=>q.Kappa is double k?Cue(Math.Max(0,k),c.SpinRatio,c.SpinFullRatio):0)*sg,dt,.085,.175);
         if(previous.Gear>0&&f.Gear>previous.Gear&&f.SpeedMps>8/3.6&&f.Throttle01>.18)ShiftStart=f.CapturedAtSec;
         Shift=Env(Shift,f.CapturedAtSec-ShiftStart<.115?1:0,dt,.010,.052);

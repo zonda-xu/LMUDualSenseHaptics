@@ -11,7 +11,7 @@ internal static class Revision052Tests
 {
     private static void Require(bool value,string message="assertion") { if(!value)throw new Exception(message); }
     private static TelemetryFrame Frame(int n) => new(n,n*.01,0,true,true,false,"test","GT3",20,0,0,-20,
-        0,0,0,0,.4f,0,3,5000,8000,false,false,true,true,
+        0,0,0,0,.4f,0,3,5000,8000,false,false,false,true,
         Enumerable.Range(0,4).Select(_=>new WheelFrame(60,0,3000,0,0,.01f,20,0,null,true)).ToImmutableArray(),n*.01,14200,VehicleModel:"test");
     public static void Run(Action<string,Action> check)
     {

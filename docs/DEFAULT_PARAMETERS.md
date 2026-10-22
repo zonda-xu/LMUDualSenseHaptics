@@ -20,6 +20,6 @@
 
 ## 保留项与旧预设
 
-L2 的 Brake 十区数组与映射未改；Engine 仍为原有 RPM 比例乘固定 22Hz 脉冲。锁死、空转、碰撞参数及单位沿用 v0.3，见 history/v0.3.0/DEFAULT_PARAMETERS.md。
+v1.2-preview 的 L2 映射已重写，参数与机制见 [BRAKE_PREVIEW.md](BRAKE_PREVIEW.md)；Engine 仍为原有 RPM 比例乘固定 22Hz 脉冲。空转与碰撞参数保持；旧 LockRatio/LockFullRatio 已移除。
 
 旧 V0/V1/F0/F1/L0/L1 仍参与旧学习/噪声统计，不再决定新版最终路面振幅；新的道路参数必须改 RoadResponse。旧车型预设自动补齐新的 RoadResponse，不应把其历史 Verified 当成新路面体验已经实测。

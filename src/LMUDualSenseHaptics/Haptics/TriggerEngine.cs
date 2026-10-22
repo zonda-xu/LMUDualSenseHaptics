@@ -5,18 +5,16 @@ using static LMUDualSenseHaptics.Physics.Maths;
 namespace LMUDualSenseHaptics.Haptics;
 public sealed class TriggerEngine
 {
-    private int leftSelected=-1,rightSelected=-1;private double leftUntil,rightUntil;
-    public string LeftSource=>leftSelected switch{0=>"Abs",1=>"Lock",_=>"BrakeBase"};
+    private int rightSelected=-1;private double rightUntil;
+    public string LeftSource {get;private set;}="BrakeBase";
     public string RightSource=>rightSelected switch{0=>"Shift",1=>"Tc",2=>"Wheelspin",3=>"Redline",_=>"ThrottleBase"};
-    private static readonly byte[] Brake=[3,4,4,5,5,6,6,7,7,8],Throttle=[2,2,2,3,3,3,4,4,5,5];
-    public void Reset(){leftSelected=rightSelected=-1;leftUntil=rightUntil=0;}
+    private static readonly byte[] Throttle=[2,2,2,3,3,3,4,4,5,5];
+    public void Reset(){rightSelected=-1;rightUntil=0;LeftSource="BrakeBase";}
     public (TriggerEffect Left,TriggerEffect Right) Render(SignalEngine e,TelemetryFrame f,double now,Profile p)
     {
         double A(double x,double tau)=>e.At(x,now,f,tau);
-        // L2 is deliberately unchanged from v0.3: base curve, ABS, lock and priority.
-        var left = Map(Brake,p.BrakeBase.Gain,
-            [A(e.Abs,.105)*p.Abs.Gain,A(e.Lock,.135)*p.Lock.Gain],
-            [15,8],now,ref leftSelected,ref leftUntil);
+        var brake = BrakeTrigger.Render(e.Braking,f,now,p);
+        var left = brake.Effect;LeftSource=brake.Source;
         if(p.ThrottleMode == ThrottleFeedbackMode.TcOnly)
         {
             // A TC setting or wheel slip is NOT an intervention. Use the live flag,

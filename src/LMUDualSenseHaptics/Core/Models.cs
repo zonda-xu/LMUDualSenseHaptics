@@ -6,7 +6,7 @@ namespace LMUDualSenseHaptics.Core;
 public sealed record WheelFrame(float OmegaRadPerSec, float SuspDeflectionM, float SuspForceN,
     float TireLoadN, float WheelYLocationM, float TireVerticalDeflectionM,
     float GroundLongitudinalMps, float GroundLateralMps, float? TireDirty, bool Valid,
-    byte? SurfaceType = null, string TerrainName = "")
+    byte? SurfaceType = null, string TerrainName = "", float? BrakePressure01 = null, float? SlidingFraction = null)
 {
     private static readonly string[] KerbPrefixes=["RMBL","RUMBLE","KERB","CURB"];
     // Public LMU ABI: surface 5 is rumblestrip. Unknown surfaces remain unknown.
@@ -23,7 +23,7 @@ public sealed record TelemetryFrame(long Sequence, double CapturedAtSec, double 
     float AccelX, float AccelY, float AccelZ, float Brake01, float Throttle01, float Steering,
     int Gear, float Rpm, float MaxRpm, bool AbsIntervening, bool TcIntervening,
     bool? AbsAvailable, bool? TcAvailable, ImmutableArray<WheelFrame> Wheels,
-    double SourceTimeSec = 0, int GameVersion = 0, float LastImpactTime = 0, float LastImpactMagnitude = 0, string VehicleModel = "")
+    double SourceTimeSec = 0, int GameVersion = 0, float LastImpactTime = 0, float LastImpactMagnitude = 0, string VehicleModel = "", byte? AbsSetting = null)
 {
     public Vector3 Velocity => new(LocalVxMps, LocalVyMps, LocalVzMps);
     public Vector3 Acceleration => new(AccelX, AccelY, AccelZ);
@@ -36,7 +36,9 @@ public sealed record TelemetryFrame(long Sequence, double CapturedAtSec, double 
             throw new InvalidDataException("遥测物理字段非有限值或超界");
         if (Wheels.Length != 4) throw new InvalidDataException("需要 FL/FR/RL/RR 四轮");
         foreach (var q in Wheels)
-            if (!q.Valid || q.TireLoadN < 0 || new[] {q.OmegaRadPerSec,q.SuspDeflectionM,q.SuspForceN,q.TireLoadN,q.WheelYLocationM,q.TireVerticalDeflectionM,q.GroundLongitudinalMps,q.GroundLateralMps}.Any(v=>!float.IsFinite(v)) || (q.TireDirty is float dirty && !float.IsFinite(dirty)))
+            if (!q.Valid || q.TireLoadN < 0 || new[] {q.OmegaRadPerSec,q.SuspDeflectionM,q.SuspForceN,q.TireLoadN,q.WheelYLocationM,q.TireVerticalDeflectionM,q.GroundLongitudinalMps,q.GroundLateralMps}.Any(v=>!float.IsFinite(v)) || (q.TireDirty is float dirty && !float.IsFinite(dirty)) ||
+                (q.BrakePressure01 is float pressure && (!float.IsFinite(pressure) || pressure is < 0 or > 1)) ||
+                (q.SlidingFraction is float fraction && (!float.IsFinite(fraction) || fraction is < 0 or > 1)))
                 throw new InvalidDataException("四轮数据无效");
     }
 }
@@ -49,10 +51,13 @@ public sealed record Feature(bool Enabled, int Strength)
     public double Gain => Enabled ? Strength / 100.0 : 0;
 }
 [JsonConverter(typeof(JsonStringEnumConverter))]
+public enum BrakeFeedbackMode { Auto, Abs, NoAbs }
+[JsonConverter(typeof(JsonStringEnumConverter))]
 public enum ThrottleFeedbackMode { TcOnly, Legacy }
 
 public sealed record Profile
 {
+    public BrakeFeedbackMode BrakeMode { get; init; } = BrakeFeedbackMode.Auto;
     public AudioHapticsSettings AudioHaptics { get; init; } = new();
     // Missing members in v0.3 JSON receive these defaults without discarding L2 gains.
     public ThrottleFeedbackMode ThrottleMode { get; init; } = ThrottleFeedbackMode.TcOnly;
@@ -82,7 +87,7 @@ public sealed record Profile
     {
         if (AudioHaptics is null) throw new InvalidDataException("缺少音圈配置");
         AudioHaptics.Validate();
-        if (!Enum.IsDefined(ThrottleMode) || UiTheme is not ("Light" or "Dark") || RoadSensitivity is < 25 or > 200)
+        if (!Enum.IsDefined(BrakeMode) || !Enum.IsDefined(ThrottleMode) || UiTheme is not ("Light" or "Dark") || RoadSensitivity is < 25 or > 200)
             throw new InvalidDataException("油门模式、界面主题或路面灵敏度非法");
         if (HidTargetHz != 250 || TelemetryStaleMs is < 50 or > 1000 || SpatialSeparation is < 0 or > 100 || !double.IsFinite(RightGain) || RightGain is <= 0 or > 2 || !double.IsFinite(RedlineStartRatio) || RedlineStartRatio is < .90 or >= .99)
             throw new InvalidDataException("配置数值超界");

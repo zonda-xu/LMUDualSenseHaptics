@@ -40,3 +40,13 @@
 TireDirty 不依赖：null 保留未知；内部轮序固定。来源未给出独立 ABI version，因此 gameVersion、尺寸和合理值只作为核对证据，不能自动证明当前 ABI 完全一致。
 
 共享锁：现有 `LMU_SharedMemoryLockData` 八字节映射，int32 waiters @0、busy @4；CAS(0→1) 获取、volatile release、waiters 非零时 SetEvent。对象名 `LMU_SharedMemoryLockEvent`；数据事件 `LMU_Data_Event`。只打开已有对象，不创建私有同名替代锁。此协议经参考源码静态核对，仍待官方及实机核验。
+
+## v1.2-preview 新增字段
+
+| 基准 | 字段 | 偏移 | 语义 |
+|---|---|---:|---|
+| wheel | mBrakePressure | 32 | double，当前 0–1 刹车压力比例，非 kPa |
+| wheel | mGripFract | 112 | double，0–1 接触面滑动比例估计，非剩余抓地力 |
+| vehicle | mABS | 756 | byte，当前 ABS 档位；与 +746 的实际介入及 +757 的可用档位分开 |
+
+新字段只读已公开的结构；线上游戏是否持续更新需实车验证。计算及验证范围见 BRAKE_PREVIEW.md。

@@ -3,7 +3,8 @@ namespace LMUDualSenseHaptics.Core;
 // Explicit starting values, not a claim of measured vehicle calibration.
 public sealed record FeedbackParameters
 {
-    public string Name {get;init;}="LMU 初始预设 v0.5.0";
+    public string Name {get;init;}="LMU v1.2-preview 初始参数";
+    public BrakeResponse BrakeResponse {get;init;}=new();
     public RoadResponse RoadResponse {get;init;}=new();
     public double V0 {get;init;}=.025;
     public double V1 {get;init;}=.30;
@@ -23,8 +24,6 @@ public sealed record FeedbackParameters
     public double LateralWeight {get;init;}=.65;
     public double JerkThreshold {get;init;}=150;
     public double DeltaVThreshold {get;init;}=.75;
-    public double LockRatio {get;init;}=.30;
-    public double LockFullRatio {get;init;}=.60;
     public double SpinRatio {get;init;}=.10;
     public double SpinFullRatio {get;init;}=.30;
     public double InputThreshold {get;init;}=.02;
@@ -40,15 +39,17 @@ public sealed record FeedbackParameters
     {
         if(RoadResponse is null)throw new InvalidDataException("缺少路面响应参数");
         RoadResponse.Validate();
+        if(BrakeResponse is null)throw new InvalidDataException("缺少刹车响应参数");
+        BrakeResponse.Validate();
         double[] values=[V0,V1,F0,F1,L0,L1,Fmin,Lmin,ContactMinLoad,AngleOffset0,AngleOffset1,
             RatioThreshold0,RatioThreshold1,LoadGate0,LoadGate1,LateralWeight,JerkThreshold,DeltaVThreshold,
-            LockRatio,LockFullRatio,SpinRatio,SpinFullRatio,InputThreshold,LearningMaxThrottle,
+            SpinRatio,SpinFullRatio,InputThreshold,LearningMaxThrottle,
             LearningMaxLongAccel,LearningMaxLatAccel,RadiusTrustedSeconds,AxleRadiusTolerance,
             RadiusDriftTolerance,RoadLearningSeconds,NoiseMultiplier];
         if(string.IsNullOrWhiteSpace(Name)||values.Any(x=>!double.IsFinite(x)||x<0)||
             V0<=0||V1<=V0||F0<=0||F1<=F0||L0<=0||L1<=L0||Fmin<=0||Lmin<=0||ContactMinLoad<=0||
             AngleOffset1<=AngleOffset0||RatioThreshold1<=RatioThreshold0||LoadGate1<=LoadGate0||
-            LateralWeight>1||JerkThreshold<=0||DeltaVThreshold<=0||LockRatio<=0||LockFullRatio<=LockRatio||
+            LateralWeight>1||JerkThreshold<=0||DeltaVThreshold<=0||
             SpinRatio<=0||SpinFullRatio<=SpinRatio||InputThreshold>=1||LearningMaxThrottle>1||
             LearningMaxLongAccel<=0||LearningMaxLatAccel<=0||RadiusTrustedSeconds<.25||
             AxleRadiusTolerance is <=0 or >.15||RadiusDriftTolerance is <=0 or >.15||

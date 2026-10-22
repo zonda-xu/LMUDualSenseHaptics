@@ -44,10 +44,10 @@ public sealed class FeedbackLoop
             double A(double value,double tau)=>Signals.At(value,now,f,tau);
             // Requested channel levels before nonlinear mixing, not physical acceleration.
             Channels=new(
-                LeftTriggerSource=="BrakeBase"?p.BrakeBase.Gain:0,
+                p.BrakeBase.Gain,
                 RightTriggerSource=="ThrottleBase"?p.ThrottleBase.Gain:0,
-                A(Signals.Abs,.105)*p.Abs.Gain*(LeftTriggerSource=="Abs"?1:.12),
-                LeftTriggerSource=="Lock"?A(Signals.Lock,.135)*p.Lock.Gain:0,
+                Math.Max(Signals.Braking.AbsWall*p.Abs.Gain,A(Signals.Abs,.105)*p.Abs.Gain*.12),
+                LeftTriggerSource is "Lock" or "BrakeLimit"?Signals.Braking.Risk*p.Lock.Gain:0,
                 RightTriggerSource=="Tc"?(p.ThrottleMode==ThrottleFeedbackMode.TcOnly?p.Tc.Gain:A(Signals.Tc,.135)*p.Tc.Gain):0,
                 RightTriggerSource=="Wheelspin"?A(Signals.Spin,.175)*p.Wheelspin.Gain:0,
                 A(Signals.Shift,.052)*p.Shift.Gain*(RightTriggerSource=="Shift"?1:.22),

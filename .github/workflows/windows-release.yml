@@ -22,28 +22,40 @@ jobs:
         run: |
           [xml]$project = Get-Content src/LMUDualSenseHaptics/LMUDualSenseHaptics.csproj
           $version = [string]$project.Project.PropertyGroup.Version
-          if ($version -notmatch '^\d+\.\d+\.\d+$') { throw 'Invalid project version' }
-          if ($env:GITHUB_REF_TYPE -eq 'tag' -and $env:GITHUB_REF_NAME -ne "v$version") {
+          if ($version -notmatch '^\d+\.\d+\.\d+(-[a-z0-9.-]+)?$') { throw 'Invalid project version' }
+          $tag = [string]$project.Project.PropertyGroup.ReleaseTag
+          if ($tag -notmatch '^v[0-9][a-zA-Z0-9.-]*$') { throw 'Invalid release tag' }
+          if ($env:GITHUB_REF_TYPE -eq 'tag' -and $env:GITHUB_REF_NAME -ne $tag) {
             throw 'Release tag must match the project version'
           }
           "version=$version" >> $env:GITHUB_OUTPUT
+          "tag=$tag" >> $env:GITHUB_OUTPUT
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Static source checks
+        run: python scripts/check-source.py
       - name: Build, test and package
         shell: pwsh
         run: ./scripts/build.ps1
+      - name: Replay regression checks
+        run: python scripts/verify-replays.py
       - name: Upload Windows application
         uses: actions/upload-artifact@v4
         with:
-          name: windows-x64-v${{ steps.version.outputs.version }}
+          name: windows-x64-${{ steps.version.outputs.tag }}
           path: |
-            artifacts/LMUDualSenseHaptics-win-x64-v${{ steps.version.outputs.version }}.zip
-            artifacts/LMUDualSenseHaptics-win-x64-v${{ steps.version.outputs.version }}.zip.sha256
+            artifacts/LMUDualSenseHaptics-win-x64-${{ steps.version.outputs.tag }}.zip
+            artifacts/LMUDualSenseHaptics-win-x64-${{ steps.version.outputs.tag }}.zip.sha256
           if-no-files-found: error
       - name: Upload build logs
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: build-logs
-          path: artifacts/build-logs/
+          path: |
+            artifacts/build-logs/
+            artifacts/validation/
           if-no-files-found: ignore
 
   release:
@@ -63,8 +75,9 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           RELEASE_TAG: ${{ github.ref_name }}
-        run: >-
-          gh release create "$RELEASE_TAG"
-          release-assets/*.zip release-assets/*.sha256
-          --verify-tag --title "LMU DualSense Haptics $RELEASE_TAG"
-          --notes-file docs/RELEASE_NOTES.md
+        run: |
+          flags=()
+          if [[ "$RELEASE_TAG" == *-* ]]; then flags+=(--prerelease --latest=false); fi
+          gh release create "$RELEASE_TAG" release-assets/*.zip release-assets/*.sha256 \
+            --verify-tag --title "LMU DualSense Haptics $RELEASE_TAG" \
+            --notes-file docs/RELEASE_NOTES.md "${flags[@]}"

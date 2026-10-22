@@ -61,7 +61,7 @@ Profile p=new(){DefaultParameters=synthetic};
 TelemetryFrame Frame(long n,double t,float omega=60,float brake=0,float throttle=0,bool abs=false,bool tc=false,int gear=3,float speed=20)
 {
     var w=Enumerable.Range(0,4).Select(_=>new WheelFrame(omega,0,3000,3000,0,0,speed,0,null,true)).ToImmutableArray();
-    return new(n,t,0,true,true,false,"synthetic","GT3",speed,0,0,-speed,0,0,0,brake,throttle,0,gear,5000,8000,abs,tc,true,true,w,t,1,VehicleModel:"synthetic");
+    return new(n,t,0,true,true,false,"synthetic","GT3",speed,0,0,-speed,0,0,0,brake,throttle,0,gear,5000,8000,abs,tc,abs,true,w,t,1,VehicleModel:"synthetic");
 }
 if(args.Length>0 && args[0]=="--export-defaults")
 {
@@ -125,7 +125,7 @@ Check("binary rejects wrong player, NaN, bool and length",()=>{var b=Snapshot();
 Check("ABS event invariance at 60/100/250 Hz",()=>{var levels=new List<double>();foreach(int hz in new[]{60,100,250}){var e=new SignalEngine();e.Update(Frame(0,0),p);for(int n=1;n<=hz;n++)e.Update(Frame(n,n/(double)hz,brake:1,abs:true),p);levels.Add(e.Abs);}Assert(levels.Max()-levels.Min()<1e-8);});
 Check("landing restores contact and creates suspension shock",()=>{var e=new SignalEngine();Warm(e);var f=Frame(152,1.52);e.Update(f with{Wheels=f.Wheels.Select(w=>w with{TireLoadN=0,SuspForceN=0}).ToImmutableArray()},p);f=Frame(153,1.53);e.Update(f with{Wheels=f.Wheels.Select(w=>w with{SuspDeflectionM=.04f,TireLoadN=7000,SuspForceN=7000}).ToImmutableArray()},p);Assert(e.Wheels.All(w=>w.Shock>.2));});
 Check("alternating kerbs have finite smooth direction",()=>{var e=new SignalEngine();Warm(e);for(int n=152;n<252;n++){var f=Frame(n,n*.01);f=f with{Wheels=f.Wheels.Select((w,i)=>w with{SuspDeflectionM=i==n%2?.02f:0,TireLoadN=i==n%2?6000:3000,SuspForceN=i==n%2?6000:3000}).ToImmutableArray()};e.Update(f,p);Assert(double.IsFinite(e.SidePan)&&Math.Abs(e.SidePan)<=1);}});
-Check("ABS higher priority preempts 20ms hold",()=>{var e=new SignalEngine{Lock=1};var t=new TriggerEngine();t.Render(e,Frame(0,0),0,p);e.Abs=1;var output=t.Render(e,Frame(0,0),.001,p);byte[] b=new byte[11];output.Left.WriteTo(b);Assert(b[9]==15);});
+Check("ABS wall responds on first intervention frame",()=>{var e=new SignalEngine();var f=Frame(0,0,brake:.7f,abs:true);e.Update(f,p);var output=new TriggerEngine().Render(e,f,0,p);Assert(output.Left.Mode==0x21&&e.Braking.AbsWall==1);});
 Check("zero enabled strength restores OFF base",()=>{var e=new SignalEngine();var t=new TriggerEngine();var output=t.Render(e,Frame(0,0),0,p with{BrakeBase=new(true,0),ThrottleBase=new(false,50)});Assert(output.Left==TriggerEffect.Off&&output.Right==TriggerEffect.Off);});
 Check("resume after stale resets event history",()=>{var loop=new FeedbackLoop();for(int i=0;i<100;i++)loop.Tick(Frame(i,i*.01,brake:1,abs:true),i*.01,p);Assert(loop.Signals.Abs>.9);Assert(loop.Tick(Frame(99,.99),2,p)==FeedbackFrame.Off);loop.Tick(Frame(101,2.01,gear:7,throttle:1),2.01,p);Assert(loop.Signals.Abs==0&&loop.Signals.Shift==0);});
 Check("deterministic telemetry replay identical reports",()=>{var a=new FeedbackLoop();var b=new FeedbackLoop();for(int i=0;i<1000;i++){var f=Frame(i,i*.01,brake:i%100<30?1:0,abs:i%100<30,throttle:i%100>60?1:0);Assert(a.Tick(f,f.CapturedAtSec,p)==b.Tick(f,f.CapturedAtSec,p));}});
@@ -290,7 +290,7 @@ Check("steady high wheel slip cannot update an established radius",()=>
 });
 Check("lock and spin use specified input and slip thresholds",()=>
 {
-    foreach(var test in new (float omega,float brake,float throttle,bool lockOn,bool spinOn)[]{(42.6f,.021f,0f,false,false),(41.4f,.021f,0f,true,false),(42f,.019f,0f,false,false),(65.4f,0f,.021f,false,false),(67.2f,0f,.021f,false,true),(70f,0f,.019f,false,false)})
+    foreach(var test in new (float omega,float brake,float throttle,bool lockOn,bool spinOn)[]{(51.6f,.021f,0f,false,false),(48.6f,.021f,0f,true,false),(42f,.019f,0f,false,false),(65.4f,0f,.021f,false,false),(67.2f,0f,.021f,false,true),(70f,0f,.019f,false,false)})
     {
         var e=new SignalEngine();Warm(e);e.Update(Frame(152,1.52,omega:test.omega,brake:test.brake,throttle:test.throttle),p);
         Assert((e.Lock>0)==test.lockOn&&(e.Spin>0)==test.spinOn);
@@ -346,7 +346,7 @@ Check("all channels become zero on pause stale disconnect and invalid telemetry"
 Check("parameter validation rejects NaN invalid order and duplicate identity",()=>
 {
     Throws(()=>new Profile{DefaultParameters=new(){V0=double.NaN}}.Validate());
-    Throws(()=>new Profile{DefaultParameters=new(){LockRatio=.5,LockFullRatio=.3}}.Validate());
+    Throws(()=>new Profile{DefaultParameters=new(){BrakeResponse=new(){WarningSlip=.2,CriticalSlip=.1}}}.Validate());
     Throws(()=>new Profile{VehiclePresets=[preset,preset]}.Validate());
     Throws(()=>(preset with{EvidenceFile=""}).Validate());
 });
@@ -379,6 +379,7 @@ Revision04Tests.Run(Check);
 Revision05Tests.Run(Check);
 Revision051Tests.Run(Check);
 Revision052Tests.Run(Check);
+BrakePreviewTests.Run(Check);
 Console.WriteLine($"RESULT {passed} passed, {failed} failed (synthetic, sanitized recorded fields and fake HID; no hardware claims)");
 Environment.ExitCode=failed==0?0:1;
 

@@ -5,7 +5,7 @@
   "Verified": false,
   "EvidenceFile": "",
   "Parameters": {
-    "Name": "LMU \u521D\u59CB\u9884\u8BBE v0.5.0",
+    "Name": "LMU v1.2-preview 初始参数",
     "RoadResponse": {
       "SuspensionNoiseMps": 0.012,
       "SuspensionFullMps": 0.16,
@@ -43,8 +43,6 @@
     "LateralWeight": 0.65,
     "JerkThreshold": 150,
     "DeltaVThreshold": 0.75,
-    "LockRatio": 0.3,
-    "LockFullRatio": 0.6,
     "SpinRatio": 0.1,
     "SpinFullRatio": 0.3,
     "InputThreshold": 0.02,
@@ -55,6 +53,14 @@
     "AxleRadiusTolerance": 0.04,
     "RadiusDriftTolerance": 0.04,
     "RoadLearningSeconds": 5,
-    "NoiseMultiplier": 3
+    "NoiseMultiplier": 3,
+    "BrakeResponse": {
+      "WarningSlip": 0.06,
+      "CriticalSlip": 0.16,
+      "LockSlip": 0.25,
+      "PredictionSeconds": 0.04,
+      "AttackSeconds": 0.008,
+      "ReleaseSeconds": 0.04
+    }
   }
 }

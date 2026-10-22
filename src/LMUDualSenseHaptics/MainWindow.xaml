@@ -1,5 +1,5 @@
 <Window x:Class="LMUDualSenseHaptics.MainWindow" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" Title="LMU · DualSense Haptics v1.0.1"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" Title="LMU · DualSense Haptics v1.2-preview"
         Icon="pack://application:,,,/Assets/AppIcon.ico"
         Style="{StaticResource {x:Type Window}}" Width="1040" Height="900" MinWidth="820" MinHeight="640">
     <Grid>
@@ -7,7 +7,7 @@
         <Border Background="{DynamicResource SurfaceBrush}" Padding="28,20" BorderBrush="{DynamicResource OutlineVariantBrush}" BorderThickness="0,0,0,1">
             <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                 <StackPanel><TextBlock Text="DualSense Haptics" FontSize="26" FontWeight="SemiBold" LineHeight="34"/>
-                    <TextBlock Text="LE MANS ULTIMATE  /  v1.0.1 · USB 手柄反馈" Style="{StaticResource Muted}" Margin="0,4,0,0"/>
+                    <TextBlock Text="LE MANS ULTIMATE  /  v1.2-preview · USB 手柄反馈" Style="{StaticResource Muted}" Margin="0,4,0,0"/>
                 </StackPanel>
                 <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
                     <Button x:Name="ThemeButton" Content="深色外观" Style="{StaticResource TextButton}" Click="ThemeClick"/>
@@ -76,7 +76,13 @@
                             </StackPanel></Border>
                             <Border Style="{StaticResource Card}"><StackPanel>
                                 <TextBlock Text="L2 刹车" Style="{StaticResource SectionTitle}"/>
-                                <TextBlock Text="L2 提供渐进刹车阻力；防抱死系统（ABS）介入或车轮抱死时，通过扳机反馈提醒。" Style="{StaticResource Muted}" Margin="0,0,0,8"/>
+                                <TextBlock Text="ABS 介入时建立刹车阻力墙；无 ABS 时随抱死风险提前增加阻力。预览版阈值仍需实车验证。" Style="{StaticResource Muted}" Margin="0,0,0,8"/>
+                                <ComboBox x:Name="BrakeModeChoice" SelectionChanged="BrakeModeChanged" Margin="0,4,0,8" AutomationProperties.Name="刹车反馈模式">
+                                    <ComboBoxItem Content="自动识别 ABS 状态"/>
+                                    <ComboBoxItem Content="有 ABS：介入阻力墙"/>
+                                    <ComboBoxItem Content="无 ABS / ABS 已关闭：临界制动预警"/>
+                                </ComboBox>
+                                <TextBlock Text="阻力墙位置按线性刹车输入估算；它提供触觉提示，不限制游戏中的刹车输入。" Style="{StaticResource Muted}"/>
                                 <StackPanel x:Name="BrakeSettings"/>
                             </StackPanel></Border>
                         </StackPanel>
