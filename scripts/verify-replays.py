@@ -22,8 +22,8 @@ jobs += [('raw', p, raw_dir / (p.stem + '.replay.jsonl')) for p in args.recordin
 def verify(job):
     mode, source, destination = job
     command = [args.dotnet, str(dll), '--replay-raw' if mode == 'raw' else '--replay', str(source), str(destination)]
-    run = subprocess.run(command, check=True, capture_output=True, text=True)
-    rows = [json.loads(line) for line in destination.read_text().splitlines()]
+    run = subprocess.run(command, check=True, capture_output=True, text=True, encoding='utf-8')
+    rows = [json.loads(line) for line in destination.read_text(encoding='utf-8').splitlines()]
     driving = [row for row in rows if row['State'].startswith('Driving')]
     assert driving, source.name
     last = rows[-1]['Output']
@@ -78,7 +78,7 @@ def verify(job):
     else:
         count = old_driving = 0
         speeds = []
-        for line in source.open():
+        for line in source.open(encoding='utf-8'):
             item = json.loads(line)
             if item.get('Kind') == 'telemetry':
                 count += 1
@@ -97,11 +97,11 @@ def verify(job):
 
 with concurrent.futures.ThreadPoolExecutor(max_workers=2) as pool:
     results = list(pool.map(verify, jobs))
-(root / 'artifacts/validation/replays.json').write_text(json.dumps(results, ensure_ascii=False, indent=2) + '\n')
-(root / 'artifacts/validation/replays.txt').write_text('\n'.join(f"{r['recording']}: {r['console']}; assertions and terminal OFF passed" for r in results) + '\n')
+(root / 'artifacts/validation/replays.json').write_text(json.dumps(results, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
+(root / 'artifacts/validation/replays.txt').write_text('\n'.join(f"{r['recording']}: {r['console']}; assertions and terminal OFF passed" for r in results) + '\n', encoding='utf-8')
 if args.recordings:
     real = dict(verification='offline parser and algorithm replay; not a hardware or dynamic calibration claim',
                 results=[r for r in results if r['mode'] == 'raw'])
-    (root / 'artifacts/validation/recordings.json').write_text(json.dumps(real, ensure_ascii=False, indent=2) + '\n')
+    (root / 'artifacts/validation/recordings.json').write_text(json.dumps(real, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
 for result in results:
     print(result['recording'], 'ticks=', result['ticks'], 'driving frames=', result['driving_frames'], 'PASS')
