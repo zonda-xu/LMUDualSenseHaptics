@@ -8,7 +8,6 @@ public sealed class BrakeSignalEngine
 {
     private readonly double[] rollingRatio = new double[4], reference = new double[4], loss = new double[4], rate = new double[4];
     private readonly bool[] contact = new bool[4];
-    private bool absWasActive;
     private BrakeFeedbackMode? previousMode;
     public BrakeFeedbackMode Mode { get; private set; }
     public double Risk { get; private set; }
@@ -31,7 +30,7 @@ public sealed class BrakeSignalEngine
     {
         Array.Clear(rollingRatio); Array.Clear(reference); Array.Clear(loss); Array.Clear(rate); Array.Clear(contact);
         Risk = LockSeverity = FrontRisk = RearRisk = MaxSlip = MaxSlipRate = AbsWall = 0;
-        AbsOnsetBrake = null; absWasActive = false; previousMode = null;
+        AbsOnsetBrake = null; previousMode = null;
         Mode = BrakeFeedbackMode.Auto; Evidence = "等待驾驶";
     }
 
@@ -101,7 +100,7 @@ public sealed class BrakeSignalEngine
         }
         else
         {
-            if (abs && !absWasActive)
+            if (abs)
                 AbsOnsetBrake = Math.Min(AbsOnsetBrake ?? 1, f.Brake01);
             // Only remember onset inside this braking manoeuvre. A deliberate lift
             // below the wall releases it; never carry a fixed pedal limit into another corner.
@@ -114,7 +113,6 @@ public sealed class BrakeSignalEngine
             Risk = Mode == BrakeFeedbackMode.NoAbs ? Math.Max(FrontRisk, RearRisk) : 0;
             LockSeverity = Mode == BrakeFeedbackMode.NoAbs ? Env(LockSeverity, lockTarget, step, c.AttackSeconds, c.ReleaseSeconds) : 0;
         }
-        absWasActive = abs;
         Evidence = Mode == BrakeFeedbackMode.Auto ? "ABS 状态未知，请选择刹车模式" :
             Mode == BrakeFeedbackMode.Abs ? "ABS 介入阻力墙" :
             absoluteEvidence ? "逐轮滑移与轮速趋势" : trendEvidence ? "轮速趋势；半径尚未就绪" : "等待轮速变化";

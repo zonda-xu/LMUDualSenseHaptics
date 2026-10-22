@@ -68,7 +68,8 @@ internal static class Revision05Tests
             var mixed=loop.Tick(f,.01,p);var transport=HapticsOutputRouting.ForTransport(mixed,true);
             var report=new byte[48];DualSenseReportBuilder.Build(transport,report);
             var command=VoiceCoilCommand.Create(loop.Signals.RoadSignals,loop.Layers,f,.01,p,loop.Mixer.ContinuousGain,loop.Mixer.EngineGain);
-            Assert(report[3]==0&&report[4]==0&&report[11]==0x21&&report[22]==0x26);
+            Assert(report[3]==0&&report[4]==0&&report[11]==0x21&&report[22]==0x21);
+            Assert(loop.LeftTriggerSource=="AbsWall"&&loop.Signals.Braking.AbsWall==1);
             Assert(transport.LeftTrigger==mixed.LeftTrigger&&transport.RightTrigger==mixed.RightTrigger);
             var pcm=Render(command,192,.01);Assert(Energy(pcm,2)>0&&Energy(pcm,0)==0&&Energy(pcm,1)==0);
         });

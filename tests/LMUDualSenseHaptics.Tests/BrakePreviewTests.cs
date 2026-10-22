@@ -109,6 +109,15 @@ internal static class BrakePreviewTests
             e.Update(Frame(2,0,.75f,true),p);Require(Math.Abs(e.Braking.AbsOnsetBrake!.Value-.75)<1e-6);
             e.Update(Frame(3,0,.6f,false),p);Require(e.Braking.AbsOnsetBrake is null&&e.Braking.AbsWall==0);
         });
+        check("preview sustained ABS follows a lower active brake position",()=>
+        {
+            var e=new SignalEngine();var p=new Profile{BrakeMode=BrakeFeedbackMode.Abs};
+            e.Update(Frame(0,0,.8f,true),p);e.Update(Frame(1,0,.5f,true),p);
+            Require(Math.Abs(e.Braking.AbsOnsetBrake!.Value-.5)<1e-6&&e.Braking.AbsWall==1);
+            var force=BrakeTrigger.Render(e.Braking,Frame(1,0,.5f,true),.01,p).Effect;
+            var baseline=BrakeTrigger.Render(new(),Frame(1,0,.5f,true),.01,p).Effect;
+            Require(Zones(force)[4]>Zones(baseline)[4]);
+        });
         check("preview ABS threshold is not carried between braking manoeuvres or vehicle sessions",()=>
         {
             var p=new Profile{BrakeMode=BrakeFeedbackMode.Abs};var e=new SignalEngine();e.Update(Frame(0,0,.8f,true),p);
