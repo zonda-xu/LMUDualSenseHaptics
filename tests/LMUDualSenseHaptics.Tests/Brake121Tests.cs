@@ -19,6 +19,7 @@ internal static class Brake121Tests
         byte[] b=new byte[11];effect.WriteTo(b);int active=b[1]|b[2]<<8;
         uint packed=(uint)(b[3]|b[4]<<8|b[5]<<16|b[6]<<24);
         return Enumerable.Range(0,10).Select(i=>(active&(1<<i))==0?0:1+(int)((packed>>(3*i))&7)).ToArray();
+    }
     public static void Run(Action<string,Action> check)
     {
         check("1.2.1 repeated GT3 Hyper GT3 switching changes actual HID output without restart",()=>

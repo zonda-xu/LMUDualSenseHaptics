@@ -78,7 +78,8 @@ public sealed class BrakeBudget
         bool onset=slip>=c.WarningSlip && previousSlip<c.WarningSlip;
         bool clean=driving&&braking&&pair&&f.Brake01>.15&&!f.AbsIntervening&&!f.TcIntervening&&
             (f.FilteredBrake01 is not float filtered || filtered<=.02 || Math.Abs(filtered-f.Brake01)<.1)&&
-            f.LastImpactTime==previous!.LastImpactTime&&wheels.All(w=>w.Kappa is not null)&&
+            previous!.Brake01>.15&&Math.Abs(f.Brake01-previous.Brake01)<.15&&
+            f.LastImpactTime==previous.LastImpactTime&&wheels.All(w=>w.Kappa is not null)&&
             f.Wheels.All(w=>WheelContact.IsGrounded(w,contactMin)&&!w.IsKerb);
         if(onset&&clean&&!sampledStop)
         {

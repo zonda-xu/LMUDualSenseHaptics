@@ -230,7 +230,7 @@ public partial class MainWindow:Window
         ErrorText.Text=s.Error;ErrorBanner.Visibility=string.IsNullOrEmpty(s.Error)?Visibility.Collapsed:Visibility.Visible;
         ValidationText.Text=$"{s.Telemetry}\n手柄：{s.Device}\n参数：{s.ParameterSource}\n{s.LearningState}";
         int brake=EncodedPeak(s.Output.LeftTrigger),throttle=EncodedPeak(s.Output.RightTrigger);
-        BrakeOutputText.Text=brake==0?"释放":(s.LeftTriggerSource switch{"AbsWall"=>"ABS 阻力墙","BrakeReference"=>"临界位置参考","BrakeLimit"=>"接近抱死","Lock"=>"抱死提醒",_=>"基础阻力"})+$" · {brake} / 8";
+        BrakeOutputText.Text=brake==0?"释放":(s.LeftTriggerSource switch{"Abs"=>"ABS 脉冲","AbsWall"=>"ABS 阻力墙","BrakeReference"=>"临界位置参考","BrakeLimit"=>"接近抱死","Lock"=>"抱死提醒",_=>"基础阻力"})+$" · {brake} / 8";
         ThrottleOutputText.Text=throttle==0?"自由行程":s.RightTriggerSource=="Tc"?$"TC · {throttle} / 8":$"{throttle} / 8";
         BrakeMeter.Value=brake;ThrottleMeter.Value=throttle;
         LeftGripMeter.Maximum=RightGripMeter.Maximum=audioMode?1:255;

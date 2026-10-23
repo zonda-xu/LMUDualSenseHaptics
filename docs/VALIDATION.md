@@ -1,3 +1,5 @@
+> v1.2.1 刹车行为以 [当前算法说明](BRAKE_1_2_1.md) 为准；下文保留此前功能和验证记录。
+
 > v1.2-preview 新增刹车链路测试，范围见 [BRAKE_PREVIEW.md](BRAKE_PREVIEW.md)。以下历史验证记录不等同于新算法已完成实车验证；当前构建结果以该提交的 GitHub Actions 为准。
 
 # v1.0.1 验证说明

@@ -5,7 +5,7 @@
   "Verified": false,
   "EvidenceFile": "",
   "Parameters": {
-    "Name": "LMU v1.2-preview 初始参数",
+    "Name": "LMU v1.2.1 初始参数",
     "RoadResponse": {
       "SuspensionNoiseMps": 0.012,
       "SuspensionFullMps": 0.16,
@@ -60,7 +60,15 @@
       "LockSlip": 0.25,
       "PredictionSeconds": 0.04,
       "AttackSeconds": 0.008,
-      "ReleaseSeconds": 0.04
+      "ReleaseSeconds": 0.04,
+      "InitialLimit": 0.78,
+      "UncertaintyMargin": 0.12,
+      "DemandLeadSeconds": 0.06,
+      "LateralReduction": 0.25,
+      "MinimumPrompt": 0.2,
+      "TravelDeadzone": 0,
+      "TravelEnd": 1,
+      "InputExponent": 1
     }
   }
 }
