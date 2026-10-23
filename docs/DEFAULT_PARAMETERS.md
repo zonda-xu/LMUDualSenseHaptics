@@ -22,6 +22,6 @@
 
 ## 保留项与旧预设
 
-v1.2-preview 的 L2 映射已重写，参数与机制见 [BRAKE_PREVIEW.md](BRAKE_PREVIEW.md)；Engine 仍为原有 RPM 比例乘固定 22Hz 脉冲。空转与碰撞参数保持；旧 LockRatio/LockFullRatio 已移除。
+v1.2.1 的 GT3 分支恢复旧版 LT；其他车型预设临界位置，参数与机制见 [BRAKE_1_2_1.md](BRAKE_1_2_1.md)；Engine 仍为原有 RPM 比例乘固定 22Hz 脉冲。空转与碰撞参数保持；旧 LockRatio/LockFullRatio 已移除。
 
 旧 V0/V1/F0/F1/L0/L1 仍参与旧学习/噪声统计，不再决定新版最终路面振幅；新的道路参数必须改 RoadResponse。旧车型预设自动补齐新的 RoadResponse，不应把其历史 Verified 当成新路面体验已经实测。
