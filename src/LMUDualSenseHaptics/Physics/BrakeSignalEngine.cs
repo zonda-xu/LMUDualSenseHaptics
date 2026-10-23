@@ -36,7 +36,7 @@ public sealed class BrakeSignalEngine
         Mode = BrakeFeedbackMode.Auto; Evidence = "等待驾驶";
     }
 
-    public void Update(TelemetryFrame f, TelemetryFrame? previous, WheelState[] wheels,
+    public void Update(TelemetryFrame f, TelemetryFrame? previous,
         Profile p, FeedbackParameters parameters)
     {
         var mode = ResolveMode(f, p);
@@ -71,7 +71,7 @@ public sealed class BrakeSignalEngine
         }
         if(Mode==BrakeFeedbackMode.NoAbs)Budget.Update(f,previous,MaxSlip,c,parameters.ContactMinLoad);
         bool abs = Mode == BrakeFeedbackMode.Abs && f.AbsIntervening && braking;
-        if (!braking || ValidSlipWheels==0)
+        if (!braking || Mode==BrakeFeedbackMode.NoAbs && ValidSlipWheels==0)
         {
             AbsOnsetBrake = null; AbsWall = Risk = LockSeverity = FrontRisk = RearRisk = 0;
         }

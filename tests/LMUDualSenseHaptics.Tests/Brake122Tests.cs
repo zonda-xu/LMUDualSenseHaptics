@@ -17,7 +17,7 @@ internal static class Brake122Tests
     }
     public static void Run(Action<string,Action> check)
     {
-        check("1.2.2 user's 5 percent base and 35 percent warning do not create an unlearned wall",()=>
+        check("1.2.2 low base and moderate warning gains do not create an unlearned wall",()=>
         {
             var loop=new FeedbackLoop();var p=new Profile{BrakeBase=new(true,5),Lock=new(true,35)};
             for(int n=0;n<100;n++)
@@ -29,6 +29,11 @@ internal static class Brake122Tests
             var f=F(0,.09f);var o=loop.Tick(f,0,p);
             Need(loop.Signals.Wheels.All(w=>w.Kappa is null)&&loop.Signals.Braking.ValidSlipWheels==4);
             Need(loop.LeftTriggerSource=="BrakeLimit"&&o.LeftTrigger.Mode==0x21&&Peak(o.LeftTrigger)>0);
+        });
+        check("1.2.2 measured warning threshold is independent of strength",()=>
+        {
+            foreach(int gain in new[]{1,5,15,35,100})
+            {var l=new FeedbackLoop();var o=l.Tick(F(0,.0601f),0,new(){BrakeBase=new(false,50),Lock=new(true,gain)});Need(l.LeftTriggerSource=="BrakeLimit"&&Peak(o.LeftTrigger)>0);}
         });
         check("1.2.2 sustained lock at startup produces a dedicated 24 Hz pulse",()=>
         {
@@ -55,6 +60,12 @@ internal static class Brake122Tests
         {
             var loop=new FeedbackLoop();var f=F(0,-.2f) with{AccelX=12,Wheels=F(0,-.2f).Wheels.Select(w=>w with{GroundLateralMps=10,SlidingFraction=1}).ToImmutableArray()};
             loop.Tick(f,0,new());Need(loop.Signals.Braking.Risk==0&&loop.Signals.Braking.LockSeverity==0);
+        });
+        check("1.2.2 manual ABS intervention does not require non-ABS patch telemetry",()=>
+        {
+            var loop=new FeedbackLoop();var f=F(0) with{AbsIntervening=true,Wheels=F(0).Wheels.Select(w=>w with{LongitudinalPatchMps=null}).ToImmutableArray()};
+            var output=loop.Tick(f,0,new(){BrakeMode=BrakeFeedbackMode.Abs});
+            Need(loop.Signals.Braking.AbsWall==1&&loop.LeftTriggerSource=="AbsWall"&&output.LeftTrigger.Mode==0x21);
         });
         check("1.2.2 missing or inconsistent patch telemetry is explicit, never invented slip",()=>
         {

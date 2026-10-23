@@ -4,7 +4,7 @@ namespace LMUDualSenseHaptics.Physics;
 
 public static class BrakeSlip
 {
-    // Validated against the supplied Valkyrie recording: patch/ground is positive
+    // LMU signed wheel-local velocities: patch/ground is positive
     // under braking, near zero in rolling, and approaches one on a locked wheel.
     // Check the rolling identity ground - patch = omega * effective radius.
     // No assumed radius or waiting for global straight-line calibration.

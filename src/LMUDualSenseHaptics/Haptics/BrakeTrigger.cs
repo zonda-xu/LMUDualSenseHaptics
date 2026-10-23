@@ -29,7 +29,7 @@ public static class BrakeTrigger
             byte amplitude=(byte)Math.Clamp((int)Math.Ceiling(8*p.Lock.Gain*Math.Max(.5,e.LockSeverity*fade)),1,8);
             return (TriggerEffect.Vibration(0,amplitude,24),"LockPulse");
         }
-        if(mode==BrakeFeedbackMode.NoAbs && e.Budget.Confidence>=.3 && e.Budget.Prompt>0 && p.Lock.Gain>0 && fade>.025)
+        if(mode==BrakeFeedbackMode.NoAbs && e.ValidSlipWheels==4 && e.Budget.Confidence>=.3 && e.Budget.Prompt>0 && p.Lock.Gain>0 && fade>.025)
         {
             // Wall is installed ahead of the finger, even at zero slip/input.
             int wall=Math.Clamp((int)Math.Floor(e.Response.TravelFor(e.Budget.Prompt)*10),0,9);
@@ -37,7 +37,9 @@ public static class BrakeTrigger
             for(int i=wall;i<10;i++)zones[i]=(byte)Math.Min(8,zones[i]+force);
             source="BrakeReference";
         }
-        if (demand > .025)
+        bool warning=mode==BrakeFeedbackMode.NoAbs && braking && p.Lock.Gain>0 && fade>.025 &&
+            (e.MaxSlip>=e.Response.WarningSlip || e.Risk>.025);
+        if (mode==BrakeFeedbackMode.Abs ? demand>.025 : warning)
         {
             source = mode == BrakeFeedbackMode.Abs ? "AbsWall" : e.LockSeverity > .5 ? "Lock" : "BrakeLimit";
             // One zone before the estimated pedal position puts the force on the

@@ -123,7 +123,7 @@ internal sealed class ApplicationCoordinator:IAsyncDisposable
 
                 lock(recordGate)
                 {
-                    if(recorder is {Stopped:false} && logSampling.Output(after))recorder.Record(new OutputRecord("output",after,f?.Sequence??0,f?.CapturedAtSec??0,(after-before)*1000,success,feedback,e.Abs,e.Lock,e.Tc,e.Spin,e.Shift,e.Redline,layers,pipeline.Mixer.PreLeft,pipeline.Mixer.PreRight,pipeline.Mixer.EngineGain,pipeline.Mixer.ContinuousGain,pipeline.Mixer.OppositeGain,pipeline.Mixer.ClippedFrames,pipeline.ParameterSource,pipeline.Channels,pipeline.LeftTriggerSource,pipeline.RightTriggerSource,audioCommand,audioStatus.Ready,new(e.Braking.Budget.Prompt,e.Braking.Budget.EstimatedLimit,e.Braking.Budget.Confidence,e.Braking.Budget.Stops,e.Braking.Budget.LoadFactor,e.Braking.Budget.DemandRate,e.Braking.Budget.Context,e.Braking.Budget.Evidence)));
+                    if(recorder is {Stopped:false} && logSampling.Output(after))recorder.Record(new OutputRecord("output",after,f?.Sequence??0,f?.CapturedAtSec??0,(after-before)*1000,success,feedback,e.Abs,e.Lock,e.Tc,e.Spin,e.Shift,e.Redline,layers,pipeline.Mixer.PreLeft,pipeline.Mixer.PreRight,pipeline.Mixer.EngineGain,pipeline.Mixer.ContinuousGain,pipeline.Mixer.OppositeGain,pipeline.Mixer.ClippedFrames,pipeline.ParameterSource,pipeline.Channels,pipeline.LeftTriggerSource,pipeline.RightTriggerSource,audioCommand,audioStatus.Ready,new(e.Braking.Budget.Prompt,e.Braking.Budget.EstimatedLimit,e.Braking.Budget.Confidence,e.Braking.Budget.Stops,e.Braking.Budget.LoadFactor,e.Braking.Budget.DemandRate,e.Braking.Budget.Context,e.Braking.Budget.Evidence,e.Braking.MaxSlip,e.Braking.Risk,e.Braking.ValidSlipWheels)));
                 }
                 if(now>=nextUi)
                 {

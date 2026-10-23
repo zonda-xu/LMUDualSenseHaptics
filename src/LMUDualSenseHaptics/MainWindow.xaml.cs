@@ -49,7 +49,6 @@ public partial class MainWindow:Window
             AddFeature(BrakeSettings,"Abs","ABS 提示","自动 GT3 使用旧版 ABS 脉冲；手动 ABS 模式使用介入阻力墙。");
             AddFeature(BrakeSettings,"Lock","临界制动预警","其他车型按接触区滑移预警，明显抱死输出 24 Hz 脉冲；GT3 保留旧版提示。");
             var brakeResponse=runtime.Profile.DefaultParameters.BrakeResponse;
-            AddSetting("初始刹车上限参考",40,95,(int)(brakeResponse.InitialLimit*100),"未经车型标定的起点；系统会减去不确定性余量。",v=>SetBrakeResponse(runtime.Profile.DefaultParameters.BrakeResponse with{InitialLimit=v/100.0}),"%",BrakeSettings);
             AddSetting("L2 起始死区",0,30,(int)(brakeResponse.TravelDeadzone*100),"填入游戏中刹车轴起始死区；软件不读取真实扳机行程。",v=>SetBrakeResponse(runtime.Profile.DefaultParameters.BrakeResponse with{TravelDeadzone=v/100.0}),"%",BrakeSettings);
             AddSetting("L2 满刹行程",50,100,(int)(brakeResponse.TravelEnd*100),"达到游戏 100% 刹车时的扳机行程。",v=>SetBrakeResponse(runtime.Profile.DefaultParameters.BrakeResponse with{TravelEnd=v/100.0}),"%",BrakeSettings);
             AddSetting("刹车输入曲线指数",25,400,(int)(brakeResponse.InputExponent*100),"100 为线性，200 表示平方曲线；仅用于阻力位置映射。",v=>SetBrakeResponse(runtime.Profile.DefaultParameters.BrakeResponse with{InputExponent=v/100.0})," /100",BrakeSettings);

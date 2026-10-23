@@ -76,13 +76,13 @@
                             </StackPanel></Border>
                             <Border Style="{StaticResource Card}"><StackPanel>
                                 <TextBlock Text="L2 刹车" Style="{StaticResource SectionTitle}"/>
-                                <TextBlock Text="自动模式：GT3 使用旧版 LT；其他车型使用起刹阻力、预设临界位置及滑移修正。每次换车都会重新识别。" Style="{StaticResource Muted}" Margin="0,0,0,8"/>
+                                <TextBlock Text="自动模式：GT3 使用旧版 LT；其他车型使用轻基础阻力、临界滑移增阻和抱死脉冲。每次换车都会重新识别。" Style="{StaticResource Muted}" Margin="0,0,0,8"/>
                                 <ComboBox x:Name="BrakeModeChoice" SelectionChanged="BrakeModeChanged" Margin="0,4,0,8" AutomationProperties.Name="刹车反馈模式">
                                     <ComboBoxItem Content="自动切换：GT3 旧版 / 其他车型预测"/>
                                     <ComboBoxItem Content="手动：ABS 介入阻力墙"/>
                                     <ComboBoxItem Content="手动：预测临界阻力"/>
                                 </ComboBox>
-                                <TextBlock Text="初始临界位置不是最佳制动点。行程映射默认线性；可在下方按游戏死区和曲线校准，不改变游戏刹车输入。" Style="{StaticResource Muted}"/>
+                                <TextBlock Text="未标定时不输出参考墙；临界提示需要有效纵向接触区速度。行程映射默认线性，可按游戏死区和曲线校准。" Style="{StaticResource Muted}"/>
                                 <StackPanel x:Name="BrakeSettings"/>
                             </StackPanel></Border>
                         </StackPanel>
