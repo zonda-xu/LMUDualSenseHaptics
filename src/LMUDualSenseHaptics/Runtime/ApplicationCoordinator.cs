@@ -37,10 +37,10 @@ internal sealed class ApplicationCoordinator:IAsyncDisposable
     public Status Current=>Volatile.Read(ref status);public Profile Profile=>Volatile.Read(ref profile);
     public string? RecordingPath=>Volatile.Read(ref recordingPath);
     public void SetProfile(Profile p){p.Validate();if(RecordingPath is not null)throw new InvalidOperationException("请先停止录制，再更改参数");Volatile.Write(ref profile,p);}
-    public void Start(){if(outputTask is not null)return;voiceCoils.Start();debugLog=new(Path.Combine(ProfileStore.DirectoryPath,"logs","debug-"+DateTime.UtcNow.ToString("yyyyMMdd-HHmmss-fff")+".jsonl"),TelemetryRecorder.DebugLimitBytes);debugLog.Record(new{Kind="session",Version="1.2-preview",DebugHz=2,TelemetryHz=50,OutputHz=10});telemetryTask=Task.Run(TelemetryLoop);outputTask=Task.Run(OutputLoop);}
+    public void Start(){if(outputTask is not null)return;voiceCoils.Start();debugLog=new(Path.Combine(ProfileStore.DirectoryPath,"logs","debug-"+DateTime.UtcNow.ToString("yyyyMMdd-HHmmss-fff")+".jsonl"),TelemetryRecorder.DebugLimitBytes);debugLog.Record(new{Kind="session",Version="1.2.1",DebugHz=2,TelemetryHz=50,OutputHz=10});telemetryTask=Task.Run(TelemetryLoop);outputTask=Task.Run(OutputLoop);}
     public void StartRecording()
     {
-        lock(recordGate){if(recorder is not null)return;recordingPath=Path.Combine(ProfileStore.DirectoryPath,"logs","telemetry-"+DateTime.UtcNow.ToString("yyyyMMdd-HHmmss-fff")+".jsonl");recorder=new(recordingPath);recorder.Record(new{Kind="profile",Version="1.2-preview",Profile,TelemetryHz=50,OutputHz=10,RawSnapshots=false});}
+        lock(recordGate){if(recorder is not null)return;recordingPath=Path.Combine(ProfileStore.DirectoryPath,"logs","telemetry-"+DateTime.UtcNow.ToString("yyyyMMdd-HHmmss-fff")+".jsonl");recorder=new(recordingPath);recorder.Record(new{Kind="profile",Version="1.2.1",Profile,TelemetryHz=50,OutputHz=10,RawSnapshots=false});}
     }
     public async Task StopRecording(){TelemetryRecorder? r;lock(recordGate){r=recorder;recorder=null;recordingPath=null;}if(r is not null)await r.DisposeAsync();}
     private void RecordError(string message)
@@ -123,14 +123,14 @@ internal sealed class ApplicationCoordinator:IAsyncDisposable
 
                 lock(recordGate)
                 {
-                    if(recorder is {Stopped:false} && logSampling.Output(after))recorder.Record(new OutputRecord("output",after,f?.Sequence??0,f?.CapturedAtSec??0,(after-before)*1000,success,feedback,e.Abs,e.Lock,e.Tc,e.Spin,e.Shift,e.Redline,layers,pipeline.Mixer.PreLeft,pipeline.Mixer.PreRight,pipeline.Mixer.EngineGain,pipeline.Mixer.ContinuousGain,pipeline.Mixer.OppositeGain,pipeline.Mixer.ClippedFrames,pipeline.ParameterSource,pipeline.Channels,pipeline.LeftTriggerSource,pipeline.RightTriggerSource,audioCommand,audioStatus.Ready));
+                    if(recorder is {Stopped:false} && logSampling.Output(after))recorder.Record(new OutputRecord("output",after,f?.Sequence??0,f?.CapturedAtSec??0,(after-before)*1000,success,feedback,e.Abs,e.Lock,e.Tc,e.Spin,e.Shift,e.Redline,layers,pipeline.Mixer.PreLeft,pipeline.Mixer.PreRight,pipeline.Mixer.EngineGain,pipeline.Mixer.ContinuousGain,pipeline.Mixer.OppositeGain,pipeline.Mixer.ClippedFrames,pipeline.ParameterSource,pipeline.Channels,pipeline.LeftTriggerSource,pipeline.RightTriggerSource,audioCommand,audioStatus.Ready,new(e.Braking.Budget.Prompt,e.Braking.Budget.EstimatedLimit,e.Braking.Budget.Confidence,e.Braking.Budget.Stops,e.Braking.Budget.LoadFactor,e.Braking.Budget.DemandRate,e.Braking.Budget.Context,e.Braking.Budget.Evidence)));
                 }
                 if(now>=nextUi)
                 {
                     nextUi=now+.1;double dt=now-lastCount;
                     double cpu=process.TotalProcessorTime.TotalSeconds;long allocated=GC.GetTotalAllocatedBytes();
                     double outputHz=dt>0?writes/dt:0,teleHz=dt>0?Interlocked.Exchange(ref frames,0)/dt:0;
-                    string wd=$"刹车 {e.Braking.Mode} · {e.Braking.Evidence} · 前/后风险 {e.Braking.FrontRisk:F2}/{e.Braking.RearRisk:F2} · slip={e.Braking.MaxSlip:F3} rate={e.Braking.MaxSlipRate:F2}/s · ABS墙={e.Braking.AbsOnsetBrake?.ToString("F2")??"无"}\n"+string.Join("\n",e.Wheels.Select((w,i)=>$"{new[]{"FL","FR","RL","RR"}[i]}  R={w.Radius:F4}m n={w.RadiusSamples} t={w.RadiusTime:F1}s  κ={(w.Kappa?.ToString("F3")??"未知")}  α={w.Alpha:F3}rad  shock={w.Shock:F3} slip={w.Slip:F3}  noiseV={w.NoiseVelocity:F4}m/s noiseF/L={w.NoiseForce:F3}/{w.NoiseLoad:F3} learn={w.RoadLearnTime:F1}s"));
+                    string wd=$"刹车 {e.Braking.Mode} · {e.Braking.Evidence} · 前/后风险 {e.Braking.FrontRisk:F2}/{e.Braking.RearRisk:F2} · slip={e.Braking.MaxSlip:F3} rate={e.Braking.MaxSlipRate:F2}/s · 预设位置={e.Braking.Budget.Prompt:P0} 上限参考={e.Braking.Budget.EstimatedLimit:P0} 置信度={e.Braking.Budget.Confidence:P0} · ABS墙={e.Braking.AbsOnsetBrake?.ToString("F2")??"无"}\n"+string.Join("\n",e.Wheels.Select((w,i)=>$"{new[]{"FL","FR","RL","RR"}[i]}  R={w.Radius:F4}m n={w.RadiusSamples} t={w.RadiusTime:F1}s  κ={(w.Kappa?.ToString("F3")??"未知")}  α={w.Alpha:F3}rad  shock={w.Shock:F3} slip={w.Slip:F3}  noiseV={w.NoiseVelocity:F4}m/s noiseF/L={w.NoiseForce:F3}/{w.NoiseLoad:F3} learn={w.RoadLearnTime:F1}s"));
                     wd+="\n"+string.Join("\n",e.RoadSignals.Wheels.Select((w,i)=>
                     {
                         var raw=f is not null && f.Wheels.Length>i?f.Wheels[i]:null;

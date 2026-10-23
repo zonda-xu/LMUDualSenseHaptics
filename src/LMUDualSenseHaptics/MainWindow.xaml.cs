@@ -46,8 +46,13 @@ public partial class MainWindow:Window
             AddFeature(ExtraTriggerSettings,"Redline","R2 转速上限提示","接近引擎转速上限时，通过 R2 脉冲提醒；需关闭上方的 TC 专用选项。");
             AddFeature(BrakeSettings,"BrakeBase","L2 基础阻力","按下刹车时提供逐渐增强的阻力。");
             BrakeModeChoice.SelectedIndex=(int)runtime.Profile.BrakeMode;
-            AddFeature(BrakeSettings,"Abs","ABS 阻力墙","在 ABS 介入的刹车位置增加阻力，提醒停止继续深踩。");
-            AddFeature(BrakeSettings,"Lock","临界制动预警","无 ABS 时提前增加 L2 阻力；明显抱死时叠加短促的阻力变化。");
+            AddFeature(BrakeSettings,"Abs","ABS 提示","自动 GT3 使用旧版 ABS 脉冲；手动 ABS 模式使用介入阻力墙。");
+            AddFeature(BrakeSettings,"Lock","临界制动预警","其他车型预设临界阻力位置并随状态修正；GT3 保留旧版抱死提示。");
+            var brakeResponse=runtime.Profile.DefaultParameters.BrakeResponse;
+            AddSetting("初始刹车上限参考",40,95,(int)(brakeResponse.InitialLimit*100),"未经车型标定的起点；系统会减去不确定性余量。",v=>SetBrakeResponse(runtime.Profile.DefaultParameters.BrakeResponse with{InitialLimit=v/100.0}),"%",BrakeSettings);
+            AddSetting("L2 起始死区",0,30,(int)(brakeResponse.TravelDeadzone*100),"填入游戏中刹车轴起始死区；软件不读取真实扳机行程。",v=>SetBrakeResponse(runtime.Profile.DefaultParameters.BrakeResponse with{TravelDeadzone=v/100.0}),"%",BrakeSettings);
+            AddSetting("L2 满刹行程",50,100,(int)(brakeResponse.TravelEnd*100),"达到游戏 100% 刹车时的扳机行程。",v=>SetBrakeResponse(runtime.Profile.DefaultParameters.BrakeResponse with{TravelEnd=v/100.0}),"%",BrakeSettings);
+            AddSetting("刹车输入曲线指数",25,400,(int)(brakeResponse.InputExponent*100),"100 为线性，200 表示平方曲线；仅用于阻力位置映射。",v=>SetBrakeResponse(runtime.Profile.DefaultParameters.BrakeResponse with{InputExponent=v/100.0})," /100",BrakeSettings);
             AddFeature(RoadSettings,"Road","路面细节与冲击","通过左右握把感知路面纹理、颠簸和较大的垂向冲击。");
             AddFeature(RoadSettings,"Kerb","路肩反馈","压过路肩时，对应一侧的握把产生明显震动。");
             AddFeature(OtherGripSettings,"GripSlip","轮胎打滑","轮胎明显打滑时，握把震动提示抓地力下降。");
@@ -75,6 +80,7 @@ public partial class MainWindow:Window
         }
         finally{building=false;}
     }
+    private void SetBrakeResponse(BrakeResponse response)=>runtime.SetProfile(runtime.Profile with{DefaultParameters=runtime.Profile.DefaultParameters with{BrakeResponse=response}});
     private void BrakeModeChanged(object sender,SelectionChangedEventArgs e)
     {
         if(building||!IsInitialized||BrakeModeChoice is null||runtime.RecordingPath is not null)return;
@@ -224,7 +230,7 @@ public partial class MainWindow:Window
         ErrorText.Text=s.Error;ErrorBanner.Visibility=string.IsNullOrEmpty(s.Error)?Visibility.Collapsed:Visibility.Visible;
         ValidationText.Text=$"{s.Telemetry}\n手柄：{s.Device}\n参数：{s.ParameterSource}\n{s.LearningState}";
         int brake=EncodedPeak(s.Output.LeftTrigger),throttle=EncodedPeak(s.Output.RightTrigger);
-        BrakeOutputText.Text=brake==0?"释放":(s.LeftTriggerSource switch{"AbsWall"=>"ABS 阻力墙","BrakeLimit"=>"接近抱死","Lock"=>"抱死提醒",_=>"基础阻力"})+$" · {brake} / 8";
+        BrakeOutputText.Text=brake==0?"释放":(s.LeftTriggerSource switch{"AbsWall"=>"ABS 阻力墙","BrakeReference"=>"临界位置参考","BrakeLimit"=>"接近抱死","Lock"=>"抱死提醒",_=>"基础阻力"})+$" · {brake} / 8";
         ThrottleOutputText.Text=throttle==0?"自由行程":s.RightTriggerSource=="Tc"?$"TC · {throttle} / 8":$"{throttle} / 8";
         BrakeMeter.Value=brake;ThrottleMeter.Value=throttle;
         LeftGripMeter.Maximum=RightGripMeter.Maximum=audioMode?1:255;

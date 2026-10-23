@@ -6,7 +6,9 @@ namespace LMUDualSenseHaptics.Core;
 public sealed record WheelFrame(float OmegaRadPerSec, float SuspDeflectionM, float SuspForceN,
     float TireLoadN, float WheelYLocationM, float TireVerticalDeflectionM,
     float GroundLongitudinalMps, float GroundLateralMps, float? TireDirty, bool Valid,
-    byte? SurfaceType = null, string TerrainName = "", float? BrakePressure01 = null, float? SlidingFraction = null)
+    byte? SurfaceType = null, string TerrainName = "", float? BrakePressure01 = null, float? SlidingFraction = null,
+    float? LongitudinalPatchMps = null, float? LongitudinalForceN = null, float? LateralForceN = null,
+    float? TirePressureKpa = null, float? TireTemperatureK = null, float? Wear01 = null, byte? CompoundIndex = null)
 {
     private static readonly string[] KerbPrefixes=["RMBL","RUMBLE","KERB","CURB"];
     // Public LMU ABI: surface 5 is rumblestrip. Unknown surfaces remain unknown.
@@ -23,7 +25,9 @@ public sealed record TelemetryFrame(long Sequence, double CapturedAtSec, double 
     float AccelX, float AccelY, float AccelZ, float Brake01, float Throttle01, float Steering,
     int Gear, float Rpm, float MaxRpm, bool AbsIntervening, bool TcIntervening,
     bool? AbsAvailable, bool? TcAvailable, ImmutableArray<WheelFrame> Wheels,
-    double SourceTimeSec = 0, int GameVersion = 0, float LastImpactTime = 0, float LastImpactMagnitude = 0, string VehicleModel = "", byte? AbsSetting = null)
+    double SourceTimeSec = 0, int GameVersion = 0, float LastImpactTime = 0, float LastImpactMagnitude = 0, string VehicleModel = "", byte? AbsSetting = null,
+    float? FilteredBrake01 = null, float? RearBrakeBias = null, byte? BrakeMigration = null,
+    float? MotorTorqueNm = null, byte? MotorState = null)
 {
     public Vector3 Velocity => new(LocalVxMps, LocalVyMps, LocalVzMps);
     public Vector3 Acceleration => new(AccelX, AccelY, AccelZ);
@@ -34,10 +38,15 @@ public sealed record TelemetryFrame(long Sequence, double CapturedAtSec, double 
         float[] values = [SpeedMps, LocalVxMps, LocalVyMps, LocalVzMps, AccelX, AccelY, AccelZ, Brake01, Throttle01, Steering, Rpm, MaxRpm, LastImpactTime, LastImpactMagnitude];
         if (values.Any(v => !float.IsFinite(v)) || SpeedMps < 0 || Brake01 is < 0 or > 1 || Throttle01 is < 0 or > 1 || Math.Abs(Steering) > 1 || Gear is < -1 or > 20 || Rpm < 0 || MaxRpm < 0)
             throw new InvalidDataException("遥测物理字段非有限值或超界");
+        if (new[]{FilteredBrake01,RearBrakeBias}.Any(x=>x is float v && (!float.IsFinite(v)||v<0||v>1)) ||
+            (MotorTorqueNm is float torque && !float.IsFinite(torque)) || MotorState > 3)
+            throw new InvalidDataException("制动工况字段无效");
         if (Wheels.Length != 4) throw new InvalidDataException("需要 FL/FR/RL/RR 四轮");
         foreach (var q in Wheels)
             if (!q.Valid || q.TireLoadN < 0 || new[] {q.OmegaRadPerSec,q.SuspDeflectionM,q.SuspForceN,q.TireLoadN,q.WheelYLocationM,q.TireVerticalDeflectionM,q.GroundLongitudinalMps,q.GroundLateralMps}.Any(v=>!float.IsFinite(v)) || (q.TireDirty is float dirty && !float.IsFinite(dirty)) ||
                 (q.BrakePressure01 is float pressure && (!float.IsFinite(pressure) || pressure is < 0 or > 1)) ||
+                new[]{q.LongitudinalPatchMps,q.LongitudinalForceN,q.LateralForceN,q.TirePressureKpa,q.TireTemperatureK,q.Wear01}.Any(x=>x is float v&&!float.IsFinite(v)) ||
+                (q.Wear01 is float wear && (wear<0||wear>1)) ||
                 (q.SlidingFraction is float fraction && (!float.IsFinite(fraction) || fraction is < 0 or > 1)))
                 throw new InvalidDataException("四轮数据无效");
     }

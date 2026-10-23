@@ -16,6 +16,7 @@ public sealed class SignalEngine
     public BrakeSignalEngine Braking {get;}=new();
     public RoadSignalEngine RoadSignals {get;}=new();
     public WheelState[] Wheels {get;private set;}=Enumerable.Range(0,4).Select(_=>new WheelState()).ToArray();
+    public double LegacyLock;
     public double Abs,Lock,Tc,Spin,Shift,Redline,SidePan,FrontShare,LeftRoad,RightRoad,Impact,ImpactPan,Scrape;
     public double ShiftStart=double.NegativeInfinity,ImpactStart=double.NegativeInfinity;
     public string LearningState {get;private set;}="等待新物理帧";
@@ -26,14 +27,14 @@ public sealed class SignalEngine
     {
         RoadSignals.Reset();Braking.Reset();
         Wheels=Enumerable.Range(0,4).Select(_=>new WheelState()).ToArray();
-        Abs=Lock=Tc=Spin=Shift=Redline=SidePan=FrontShare=LeftRoad=RightRoad=Impact=ImpactPan=Scrape=0;
+        LegacyLock=Abs=Lock=Tc=Spin=Shift=Redline=SidePan=FrontShare=LeftRoad=RightRoad=Impact=ImpactPan=Scrape=0;
         ShiftStart=ImpactStart=pendingImpactUntil=lastImpactObserved=double.NegativeInfinity;
         cooldown=lastImpactTime=0;previous=null;velocityHistory.Clear();LearningState="等待新物理帧";
     }
     public void Update(TelemetryFrame f,Profile p,FeedbackParameters? parameters=null)
     {
         f.Validate();var c=parameters??p.DefaultParameters;
-        if(previous?.Sequence==f.Sequence)return;
+        if(previous?.Sequence==f.Sequence && previous.CarId==f.CarId && previous.VehicleModel==f.VehicleModel && previous.VehicleClass==f.VehicleClass && Braking.Mode==BrakeSignalEngine.ResolveMode(f,p))return;
         double dt=previous is null?0:f.CapturedAtSec-previous.CapturedAtSec;
         if(previous is null||previous.CarId!=f.CarId||previous.GameVersion!=f.GameVersion||
             previous.VehicleModel!=f.VehicleModel||previous.VehicleClass!=f.VehicleClass||dt<=0||dt>.25||f.SourceTimeSec<=previous.SourceTimeSec)
@@ -118,7 +119,8 @@ public sealed class SignalEngine
         Abs=Env(Abs,ar*bg,dt,.032,.105);Tc=Env(Tc,tr*tg,dt,.060,.135);
         static double Cue(double ratio,double start,double full)=>ratio>=start?.25+.75*Smooth(start,full,ratio):0;
         Braking.Update(f,previous,Wheels,p,c);
-        Lock=Braking.LockSeverity;
+        LegacyLock=Env(LegacyLock,(1-ar)*(f.Brake01>c.InputThreshold?1:0)*Wheels.Max(q=>q.Kappa is double k?Cue(Math.Max(0,-k),.30,.60):0)*sg,dt,.050,.135);
+        Lock=BrakeRouting.Legacy(f,p)?LegacyLock:Braking.LockSeverity;
         Spin=Env(Spin,(1-tr)*(f.Throttle01>c.InputThreshold?1:0)*Wheels.Max(q=>q.Kappa is double k?Cue(Math.Max(0,k),c.SpinRatio,c.SpinFullRatio):0)*sg,dt,.085,.175);
         if(previous.Gear>0&&f.Gear>previous.Gear&&f.SpeedMps>8/3.6&&f.Throttle01>.18)ShiftStart=f.CapturedAtSec;
         Shift=Env(Shift,f.CapturedAtSec-ShiftStart<.115?1:0,dt,.010,.052);

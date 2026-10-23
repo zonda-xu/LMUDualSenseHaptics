@@ -37,14 +37,14 @@ internal static class BrakePreviewTests
             Require(f.AbsSetting==3&&f.AbsAvailable==true&&!f.AbsIntervening);
             for(int i=0;i<4;i++)Require(Math.Abs(f.Wheels[i].BrakePressure01!.Value-.1*(i+1))<1e-6&&Math.Abs(f.Wheels[i].SlidingFraction!.Value-.2*(i+1))<1e-6);
         });
-        check("preview automatic mode distinguishes availability, setting and live intervention",()=>
+        check("preview automatic mode routes by current class, not ABS metadata",()=>
         {
             var f=Frame(0);var p=new Profile();
             Require(BrakeSignalEngine.ResolveMode(f,p)==BrakeFeedbackMode.NoAbs);
-            Require(BrakeSignalEngine.ResolveMode(f with{AbsAvailable=true,AbsSetting=4},p)==BrakeFeedbackMode.Abs);
+            Require(BrakeSignalEngine.ResolveMode(f with{AbsAvailable=true,AbsSetting=4},p)==BrakeFeedbackMode.NoAbs);
             Require(BrakeSignalEngine.ResolveMode(f with{AbsAvailable=true,AbsSetting=0},p)==BrakeFeedbackMode.NoAbs);
-            Require(BrakeSignalEngine.ResolveMode(f with{AbsAvailable=null,AbsSetting=null},p)==BrakeFeedbackMode.Auto);
-            Require(BrakeSignalEngine.ResolveMode(f with{AbsIntervening=true},p)==BrakeFeedbackMode.Abs);
+            Require(BrakeSignalEngine.ResolveMode(f with{AbsAvailable=null,AbsSetting=null},p)==BrakeFeedbackMode.NoAbs);
+            Require(BrakeSignalEngine.ResolveMode(f with{VehicleClass="LMGT3",AbsIntervening=false},p)==BrakeFeedbackMode.Abs);
             Require(BrakeSignalEngine.ResolveMode(f with{AbsIntervening=true},p with{BrakeMode=BrakeFeedbackMode.NoAbs})==BrakeFeedbackMode.NoAbs);
         });
         check("preview no-ABS warning precedes old 30 percent trigger",()=>

@@ -6,6 +6,8 @@ namespace LMUDualSenseHaptics.Physics;
 // Per-wheel longitudinal evidence. Lateral slip alone never means brake lock.
 public sealed class BrakeSignalEngine
 {
+    public BrakeBudget Budget { get; } = new();
+    public BrakeResponse Response { get; private set; } = new();
     private readonly double[] rollingRatio = new double[4], reference = new double[4], loss = new double[4], rate = new double[4];
     private readonly bool[] contact = new bool[4];
     private BrakeFeedbackMode? previousMode;
@@ -22,12 +24,11 @@ public sealed class BrakeSignalEngine
 
     public static BrakeFeedbackMode ResolveMode(TelemetryFrame f, Profile p) =>
         p.BrakeMode != BrakeFeedbackMode.Auto ? p.BrakeMode :
-        f.AbsIntervening ? BrakeFeedbackMode.Abs :
-        f.AbsAvailable == true && f.AbsSetting != 0 ? BrakeFeedbackMode.Abs :
-        f.AbsAvailable == false || f.AbsSetting == 0 ? BrakeFeedbackMode.NoAbs : BrakeFeedbackMode.Auto;
+        BrakeRouting.IsGt3(f) ? BrakeFeedbackMode.Abs : BrakeFeedbackMode.NoAbs;
 
     public void Reset()
     {
+        Budget.Reset();
         Array.Clear(rollingRatio); Array.Clear(reference); Array.Clear(loss); Array.Clear(rate); Array.Clear(contact);
         Risk = LockSeverity = FrontRisk = RearRisk = MaxSlip = MaxSlipRate = AbsWall = 0;
         AbsOnsetBrake = null; previousMode = null;
@@ -40,7 +41,7 @@ public sealed class BrakeSignalEngine
         var mode = ResolveMode(f, p);
         if (previousMode != mode) Reset();
         Mode = mode; previousMode = mode;
-        var c = parameters.BrakeResponse;
+        var c = parameters.BrakeResponse; Response=c;
         // Derivatives use physics time, not host scheduling jitter.
         double dt = previous is null ? 0 : f.SourceTimeSec - previous.SourceTimeSec;
         bool freshPair = dt is > 0 and <= .1;
@@ -93,6 +94,7 @@ public sealed class BrakeSignalEngine
             }
             rollingRatio[i] = ratio; contact[i] = grounded;
         }
+        if(Mode==BrakeFeedbackMode.NoAbs)Budget.Update(f,previous,wheels,MaxSlip,c,parameters.ContactMinLoad);
         bool abs = Mode == BrakeFeedbackMode.Abs && f.AbsIntervening && braking;
         if (!braking)
         {
@@ -114,7 +116,7 @@ public sealed class BrakeSignalEngine
             LockSeverity = Mode == BrakeFeedbackMode.NoAbs ? Env(LockSeverity, lockTarget, step, c.AttackSeconds, c.ReleaseSeconds) : 0;
         }
         Evidence = Mode == BrakeFeedbackMode.Auto ? "ABS 状态未知，请选择刹车模式" :
-            Mode == BrakeFeedbackMode.Abs ? "ABS 介入阻力墙" :
-            absoluteEvidence ? "逐轮滑移与轮速趋势" : trendEvidence ? "轮速趋势；半径尚未就绪" : "等待轮速变化";
+            Mode == BrakeFeedbackMode.Abs ? "GT3 旧版 / 手动 ABS" :
+            (absoluteEvidence ? "逐轮滑移" : trendEvidence ? "轮速趋势" : "等待轮速校正")+" · "+Budget.Evidence;
     }
 }

@@ -7,6 +7,7 @@ public sealed class FeedbackLoop
 {
     public SignalEngine Signals {get;}=new();
     private FeedbackParameters? activeParameters;
+    private BrakeFeedbackMode? activeBrakeMode;
     private VehiclePreset? activePreset;
     private readonly TriggerEngine triggers=new();public FrameMixer Mixer {get;}=new();
     public string Reason {get;private set;}="WaitingForLMU";
@@ -30,8 +31,8 @@ public sealed class FeedbackLoop
             if(age<0||age>p.TelemetryStaleMs/1000.0)return Off("Stale：遥测超时/时钟逆序");
             var preset=p.VehiclePresets.FirstOrDefault(v=>v.Matches(f));
             var parameters=preset?.Parameters??p.DefaultParameters;
-            if(activeParameters!=parameters||activePreset!=preset)
-            {Signals.Reset();triggers.Reset();activeParameters=parameters;activePreset=preset;}
+            if(activeParameters!=parameters||activePreset!=preset||activeBrakeMode!=p.BrakeMode)
+            {Signals.Reset();triggers.Reset();activeParameters=parameters;activePreset=preset;activeBrakeMode=p.BrakeMode;}
             Signals.Update(f,p,parameters);
             AdvancedFeedbackEnabled=true;
             ParameterSource=preset is null?"默认初始参数："+parameters.Name:"已验证车型预设："+parameters.Name;
@@ -47,7 +48,7 @@ public sealed class FeedbackLoop
                 p.BrakeBase.Gain,
                 RightTriggerSource=="ThrottleBase"?p.ThrottleBase.Gain:0,
                 Math.Max(Signals.Braking.AbsWall*p.Abs.Gain,A(Signals.Abs,.105)*p.Abs.Gain*.12),
-                LeftTriggerSource is "Lock" or "BrakeLimit"?Signals.Braking.Risk*p.Lock.Gain:0,
+                LeftTriggerSource=="BrakeReference"?p.Lock.Gain:LeftTriggerSource is "Lock" or "BrakeLimit"?Math.Max(Signals.Lock,Signals.Braking.Risk)*p.Lock.Gain:0,
                 RightTriggerSource=="Tc"?(p.ThrottleMode==ThrottleFeedbackMode.TcOnly?p.Tc.Gain:A(Signals.Tc,.135)*p.Tc.Gain):0,
                 RightTriggerSource=="Wheelspin"?A(Signals.Spin,.175)*p.Wheelspin.Gain:0,
                 A(Signals.Shift,.052)*p.Shift.Gain*(RightTriggerSource=="Shift"?1:.22),
@@ -63,7 +64,7 @@ public sealed class FeedbackLoop
     }
     public FeedbackFrame Off(string reason)
     {
-        Signals.Reset();triggers.Reset();activeParameters=null;activePreset=null;AdvancedFeedbackEnabled=false;
+        Signals.Reset();triggers.Reset();activeParameters=null;activePreset=null;activeBrakeMode=null;AdvancedFeedbackEnabled=false;
         Layers=default;Channels=default;LeftTriggerSource=RightTriggerSource="OFF";ParameterSource="等待驾驶";Mixer.ResetDiagnostics();Reason=reason;return FeedbackFrame.Off;
     }
 }

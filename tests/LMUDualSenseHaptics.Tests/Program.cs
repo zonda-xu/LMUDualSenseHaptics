@@ -61,7 +61,7 @@ Profile p=new(){DefaultParameters=synthetic};
 TelemetryFrame Frame(long n,double t,float omega=60,float brake=0,float throttle=0,bool abs=false,bool tc=false,int gear=3,float speed=20)
 {
     var w=Enumerable.Range(0,4).Select(_=>new WheelFrame(omega,0,3000,3000,0,0,speed,0,null,true)).ToImmutableArray();
-    return new(n,t,0,true,true,false,"synthetic","GT3",speed,0,0,-speed,0,0,0,brake,throttle,0,gear,5000,8000,abs,tc,abs,true,w,t,1,VehicleModel:"synthetic");
+    return new(n,t,0,true,true,false,"synthetic","Hypercar",speed,0,0,-speed,0,0,0,brake,throttle,0,gear,5000,8000,abs,tc,abs,true,w,t,1,VehicleModel:"synthetic");
 }
 if(args.Length>0 && args[0]=="--export-defaults")
 {
@@ -102,7 +102,7 @@ Check("radius unknown until trusted calibration",()=>{var e=new SignalEngine();e
 Check("negative lock, positive spin, calibration frozen during events",()=>{var e=new SignalEngine();Warm(e);double radius=e.Wheels[0].Radius;e.Update(Frame(152,1.52,omega:30,brake:1),p);Assert(e.Wheels[0].Kappa<-.45&&e.Lock>0&&e.Wheels[0].Radius==radius);e.Update(Frame(153,1.53,omega:80,throttle:1),p);Assert(e.Wheels[0].Kappa>.3&&e.Spin>0&&e.Wheels[0].Radius==radius);});
 Check("low speed slip unknown",()=>{var e=new SignalEngine();Warm(e);e.Update(Frame(152,1.52,omega:0,brake:1,speed:2),p);Assert(e.Wheels.All(w=>w.Kappa is null));});
 Check("turning individual wheel speeds do not cause lock",()=>{var e=new SignalEngine();Warm(e);var f=Frame(152,1.52,brake:.5f);var w=f.Wheels.ToArray();w[0]=w[0] with{OmegaRadPerSec=54,GroundLongitudinalMps=18};w[1]=w[1] with{OmegaRadPerSec=66,GroundLongitudinalMps=22};e.Update(f with{Wheels=w.ToImmutableArray()},p);Assert(e.Wheels.All(q=>Math.Abs(q.Kappa??0)<.001));});
-Check("ABS/TC intervention suppresses mechanical targets",()=>{var e=new SignalEngine();Warm(e);e.Update(Frame(152,1.52,omega:20,brake:1,abs:true),p);Assert(e.Abs>0&&e.Lock==0);e.Update(Frame(153,1.53,omega:90,throttle:1,tc:true),p);Assert(e.Tc>0&&e.Spin==0);});
+Check("ABS/TC intervention suppresses mechanical targets",()=>{var e=new SignalEngine();Warm(e);e.Update(Frame(152,1.52,omega:20,brake:1,abs:true),p with{BrakeMode=BrakeFeedbackMode.Abs});Assert(e.Abs>0&&e.Lock==0);e.Update(Frame(153,1.53,omega:90,throttle:1,tc:true),p);Assert(e.Tc>0&&e.Spin==0);});
 Check("atan2 units and normal sustained corner",()=>{var e=new SignalEngine();for(int n=0;n<600;n++){var f=Frame(n,n*.01);f=f with{Wheels=f.Wheels.Select(w=>w with{GroundLateralMps=1}).ToImmutableArray(),Steering=.1f};e.Update(f,p);}Assert(Math.Abs(e.Wheels[0].Alpha-Math.Atan2(1,20))<1e-6);Assert(e.Wheels[0].Slip<.005);});
 Check("single right suspension impact pans right",()=>{var e=new SignalEngine();Warm(e);var f=Frame(152,1.52);f=f with{Wheels=f.Wheels.Select((w,i)=>i==1?w with{SuspDeflectionM=.03f,SuspForceN=6000,TireLoadN=6000}:w).ToImmutableArray()};e.Update(f,p);Assert(e.RightRoad>e.LeftRoad*3&&e.Impact==0);});
 Check("slow pitch does not resemble sharp kerb",()=>{var e=new SignalEngine();for(int n=0;n<200;n++){var f=Frame(n,n*.01,brake:.5f);f=f with{Wheels=f.Wheels.Select(w=>w with{SuspDeflectionM=(float)(.005*Math.Sin(n*.01))}).ToImmutableArray()};e.Update(f,p);}Assert(e.Wheels.Max(w=>w.Shock)<.001&&e.Impact==0);});
@@ -125,7 +125,7 @@ Check("binary rejects wrong player, NaN, bool and length",()=>{var b=Snapshot();
 Check("ABS event invariance at 60/100/250 Hz",()=>{var levels=new List<double>();foreach(int hz in new[]{60,100,250}){var e=new SignalEngine();e.Update(Frame(0,0),p);for(int n=1;n<=hz;n++)e.Update(Frame(n,n/(double)hz,brake:1,abs:true),p);levels.Add(e.Abs);}Assert(levels.Max()-levels.Min()<1e-8);});
 Check("landing restores contact and creates suspension shock",()=>{var e=new SignalEngine();Warm(e);var f=Frame(152,1.52);e.Update(f with{Wheels=f.Wheels.Select(w=>w with{TireLoadN=0,SuspForceN=0}).ToImmutableArray()},p);f=Frame(153,1.53);e.Update(f with{Wheels=f.Wheels.Select(w=>w with{SuspDeflectionM=.04f,TireLoadN=7000,SuspForceN=7000}).ToImmutableArray()},p);Assert(e.Wheels.All(w=>w.Shock>.2));});
 Check("alternating kerbs have finite smooth direction",()=>{var e=new SignalEngine();Warm(e);for(int n=152;n<252;n++){var f=Frame(n,n*.01);f=f with{Wheels=f.Wheels.Select((w,i)=>w with{SuspDeflectionM=i==n%2?.02f:0,TireLoadN=i==n%2?6000:3000,SuspForceN=i==n%2?6000:3000}).ToImmutableArray()};e.Update(f,p);Assert(double.IsFinite(e.SidePan)&&Math.Abs(e.SidePan)<=1);}});
-Check("ABS wall responds on first intervention frame",()=>{var e=new SignalEngine();var f=Frame(0,0,brake:.7f,abs:true);e.Update(f,p);var output=new TriggerEngine().Render(e,f,0,p);Assert(output.Left.Mode==0x21&&e.Braking.AbsWall==1);});
+Check("ABS wall responds on first intervention frame",()=>{var e=new SignalEngine();var f=Frame(0,0,brake:.7f,abs:true);var ap=p with{BrakeMode=BrakeFeedbackMode.Abs};e.Update(f,ap);var output=new TriggerEngine().Render(e,f,0,ap);Assert(output.Left.Mode==0x21&&e.Braking.AbsWall==1);});
 Check("zero enabled strength restores OFF base",()=>{var e=new SignalEngine();var t=new TriggerEngine();var output=t.Render(e,Frame(0,0),0,p with{BrakeBase=new(true,0),ThrottleBase=new(false,50)});Assert(output.Left==TriggerEffect.Off&&output.Right==TriggerEffect.Off);});
 Check("resume after stale resets event history",()=>{var loop=new FeedbackLoop();for(int i=0;i<100;i++)loop.Tick(Frame(i,i*.01,brake:1,abs:true),i*.01,p);Assert(loop.Signals.Abs>.9);Assert(loop.Tick(Frame(99,.99),2,p)==FeedbackFrame.Off);loop.Tick(Frame(101,2.01,gear:7,throttle:1),2.01,p);Assert(loop.Signals.Abs==0&&loop.Signals.Shift==0);});
 Check("deterministic telemetry replay identical reports",()=>{var a=new FeedbackLoop();var b=new FeedbackLoop();for(int i=0;i<1000;i++){var f=Frame(i,i*.01,brake:i%100<30?1:0,abs:i%100<30,throttle:i%100>60?1:0);Assert(a.Tick(f,f.CapturedAtSec,p)==b.Tick(f,f.CapturedAtSec,p));}});
@@ -173,7 +173,7 @@ Check("legacy parameters keep redline and upshift events",()=>
     var shift=loop.Tick(Frame(2,.1,throttle:1,gear:4),.1,basic);
     shift.RightTrigger.WriteTo(report);Assert(report[0]==0x26&&report[9]==28&&loop.Signals.Shift>0);
 });
-VehiclePreset preset=new(1,"synthetic","GT3",true,"SYNTHETIC TEST ONLY",synthetic with{V0=5,V1=10,RoadResponse=new(){SuspensionNoiseMps=5,SuspensionFullMps=10,TireNoiseMps=5,TireFullMps=10,LoadNoisePerSec=1000,LoadFullPerSec=2000,BumpNoiseMps=5,BumpFullMps=10,BumpLoadNoisePerSec=1000,BumpLoadFullPerSec=2000}});
+VehiclePreset preset=new(1,"synthetic","Hypercar",true,"SYNTHETIC TEST ONLY",synthetic with{V0=5,V1=10,RoadResponse=new(){SuspensionNoiseMps=5,SuspensionFullMps=10,TireNoiseMps=5,TireFullMps=10,LoadNoisePerSec=1000,LoadFullPerSec=2000,BumpNoiseMps=5,BumpFullMps=10,BumpLoadNoisePerSec=1000,BumpLoadFullPerSec=2000}});
 Check("unverified or mismatched preset selects working default parameters",()=>
 {
     foreach(var candidate in new[]{preset with{GameVersion=2},preset with{VehicleModel="other"},preset with{VehicleClass="GTE"},preset with{Verified=false}})
@@ -380,6 +380,7 @@ Revision05Tests.Run(Check);
 Revision051Tests.Run(Check);
 Revision052Tests.Run(Check);
 BrakePreviewTests.Run(Check);
+Brake121Tests.Run(Check);
 Console.WriteLine($"RESULT {passed} passed, {failed} failed (synthetic, sanitized recorded fields and fake HID; no hardware claims)");
 Environment.ExitCode=failed==0?0:1;
 
