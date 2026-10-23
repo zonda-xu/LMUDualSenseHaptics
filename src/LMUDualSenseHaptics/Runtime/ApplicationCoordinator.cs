@@ -37,10 +37,10 @@ internal sealed class ApplicationCoordinator:IAsyncDisposable
     public Status Current=>Volatile.Read(ref status);public Profile Profile=>Volatile.Read(ref profile);
     public string? RecordingPath=>Volatile.Read(ref recordingPath);
     public void SetProfile(Profile p){p.Validate();if(RecordingPath is not null)throw new InvalidOperationException("请先停止录制，再更改参数");Volatile.Write(ref profile,p);}
-    public void Start(){if(outputTask is not null)return;voiceCoils.Start();debugLog=new(Path.Combine(ProfileStore.DirectoryPath,"logs","debug-"+DateTime.UtcNow.ToString("yyyyMMdd-HHmmss-fff")+".jsonl"),TelemetryRecorder.DebugLimitBytes);debugLog.Record(new{Kind="session",Version="1.2.1",DebugHz=2,TelemetryHz=50,OutputHz=10});telemetryTask=Task.Run(TelemetryLoop);outputTask=Task.Run(OutputLoop);}
+    public void Start(){if(outputTask is not null)return;voiceCoils.Start();debugLog=new(Path.Combine(ProfileStore.DirectoryPath,"logs","debug-"+DateTime.UtcNow.ToString("yyyyMMdd-HHmmss-fff")+".jsonl"),TelemetryRecorder.DebugLimitBytes);debugLog.Record(new{Kind="session",Version="1.2.2",DebugHz=2,TelemetryHz=50,OutputHz=10});telemetryTask=Task.Run(TelemetryLoop);outputTask=Task.Run(OutputLoop);}
     public void StartRecording()
     {
-        lock(recordGate){if(recorder is not null)return;recordingPath=Path.Combine(ProfileStore.DirectoryPath,"logs","telemetry-"+DateTime.UtcNow.ToString("yyyyMMdd-HHmmss-fff")+".jsonl");recorder=new(recordingPath);recorder.Record(new{Kind="profile",Version="1.2.1",Profile,TelemetryHz=50,OutputHz=10,RawSnapshots=false});}
+        lock(recordGate){if(recorder is not null)return;recordingPath=Path.Combine(ProfileStore.DirectoryPath,"logs","telemetry-"+DateTime.UtcNow.ToString("yyyyMMdd-HHmmss-fff")+".jsonl");recorder=new(recordingPath);recorder.Record(new{Kind="profile",Version="1.2.2",Profile,TelemetryHz=50,OutputHz=10,RawSnapshots=false});}
     }
     public async Task StopRecording(){TelemetryRecorder? r;lock(recordGate){r=recorder;recorder=null;recordingPath=null;}if(r is not null)await r.DisposeAsync();}
     private void RecordError(string message)

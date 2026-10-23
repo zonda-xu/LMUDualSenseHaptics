@@ -27,7 +27,7 @@ internal static class Revision052Tests
         {
             var e=new SignalEngine();for(int n=0;n<250;n++)e.Update(Frame(n),new());
             Require(e.Wheels.All(w=>w.RadiusTime>1&&w.Kappa is not null&&Math.Abs(w.Radius-1.0/3)<1e-6));
-            var f=Frame(250) with{Brake01=1,Wheels=Frame(250).Wheels.Select(w=>w with{OmegaRadPerSec=25}).ToImmutableArray()};
+            var f=Frame(250) with{Brake01=1,Wheels=Frame(250).Wheels.Select(w=>w with{OmegaRadPerSec=25,LongitudinalPatchMps=20-25f/3}).ToImmutableArray()};
             for(int n=250;n<280;n++)e.Update(f with{Sequence=n,CapturedAtSec=n*.01,SourceTimeSec=n*.01},new());
             Require(e.Lock>.1&&e.Wheels.All(w=>w.Kappa<-.3));
         });

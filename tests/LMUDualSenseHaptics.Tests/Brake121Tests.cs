@@ -11,7 +11,7 @@ internal static class Brake121Tests
     private static void Need(bool value,string reason="assertion"){if(!value)throw new Exception(reason);}
     private static TelemetryFrame F(int n,float brake=0,string cls="Hypercar") =>
         new(n,n*.01,0,true,true,false,"same-slot",cls,30,0,0,-30,0,0,0,brake,0,0,3,5000,8000,false,false,null,null,
-            Enumerable.Range(0,4).Select(_=>new WheelFrame(90,0,3000,3000,0,.01f,30,0,null,true,BrakePressure01:brake)).ToImmutableArray(),
+            Enumerable.Range(0,4).Select(_=>new WheelFrame(90,0,3000,3000,0,.01f,30,0,null,true,BrakePressure01:brake,LongitudinalPatchMps:0)).ToImmutableArray(),
             n*.01,14200,VehicleModel:"same-model");
     private static WheelState[] Trusted()=>Enumerable.Range(0,4).Select(_=>new WheelState{Kappa=0}).ToArray();
     private static int[] Zones(TriggerEffect effect)
@@ -32,7 +32,7 @@ internal static class Brake121Tests
                     var a=F(n++,.8f,cls) with{AbsIntervening=true,AbsAvailable=true,AbsSetting=5};loop.Tick(a,a.CapturedAtSec,p);
                     var b=F(n++,.8f,cls) with{AbsIntervening=true,AbsAvailable=true,AbsSetting=5};var output=loop.Tick(b,b.CapturedAtSec,p);
                     bool gt3=cls.Contains("GT3");Need(output.LeftTrigger.Mode==(gt3?0x26:0x21),cls);
-                    Need(loop.LeftTriggerSource==(gt3?"Abs":"BrakeReference"),cls);
+                    Need(loop.LeftTriggerSource==(gt3?"Abs":"BrakeBase"),cls);
                     Need(gt3||loop.Signals.Braking.Budget.Prompt>0);
                 }
             }
@@ -62,33 +62,33 @@ internal static class Brake121Tests
             var loop=new FeedbackLoop();var f=F(0,0,"GT3");
             for(int i=0;i<3;i++)
             {
-                loop.Tick(f,0,new(){BrakeMode=BrakeFeedbackMode.NoAbs});Need(loop.LeftTriggerSource=="BrakeReference");
+                loop.Tick(f,0,new(){BrakeMode=BrakeFeedbackMode.NoAbs});Need(loop.LeftTriggerSource=="BrakeBase"&&loop.Signals.Braking.Mode==BrakeFeedbackMode.NoAbs);
                 loop.Tick(f,0,new());Need(loop.LeftTriggerSource=="BrakeBase"&&loop.Signals.Braking.Budget.Prompt==0);
             }
         });
-        check("1.2.1 zero-slip zero-pedal reference is installed ahead of input",()=>
+        check("1.2.1 unlearned reference is diagnostic only and does not resist the finger",()=>
         {
             var loop=new FeedbackLoop();var output=loop.Tick(F(0),0,new());var z=Zones(output.LeftTrigger);
             Need(loop.Signals.Braking.Risk==0&&loop.Signals.Braking.Budget.Prompt is >.5 and <.8);
-            Need(loop.LeftTriggerSource=="BrakeReference"&&z[0]>=3&&z[6]>z[3]);
+            Need(loop.LeftTriggerSource=="BrakeBase"&&z[0]==0&&z.Max()<=2);
         });
         check("1.2.1 baseline alone works and all brake features can be disabled",()=>
         {
             var p=new Profile{Lock=new(false,50),Abs=new(false,50)};var loop=new FeedbackLoop();
-            var o=loop.Tick(F(0),0,p);Need(loop.LeftTriggerSource=="BrakeBase"&&Zones(o.LeftTrigger)[0]==3);
+            var o=loop.Tick(F(0),0,p);Need(loop.LeftTriggerSource=="BrakeBase"&&Zones(o.LeftTrigger)[0]==0&&Zones(o.LeftTrigger).Max()>0);
             Need(loop.Tick(F(1),.01,p with{BrakeBase=new(false,50)}).LeftTrigger==TriggerEffect.Off);
         });
         check("1.2.1 rising demand advances prompt without any slip",()=>
         {
-            var a=new BrakeBudget();var b=new BrakeBudget();var w=Trusted();var c=new BrakeResponse();
-            a.Update(F(0,.3f),null,w,0,c,100);b.Update(F(0,.6f),null,w,0,c,100);
-            a.Update(F(1,.6f),F(0,.3f),w,0,c,100);b.Update(F(1,.6f),F(0,.6f),w,0,c,100);
+            var a=new BrakeBudget();var b=new BrakeBudget();var c=new BrakeResponse();
+            a.Update(F(0,.3f),null,0,c,100);b.Update(F(0,.6f),null,0,c,100);
+            a.Update(F(1,.6f),F(0,.3f),0,c,100);b.Update(F(1,.6f),F(0,.6f),0,c,100);
             Need(a.Prompt<b.Prompt&&a.Confidence==0);
         });
         check("1.2.1 live pressure rise advances demand at steady pedal without slip",()=>
         {
             var a=new BrakeBudget();var f=F(0,.6f);var g=F(1,.6f) with{Wheels=F(1,.6f).Wheels.Select(w=>w with{BrakePressure01=.65f}).ToImmutableArray()};
-            a.Update(f,null,Trusted(),0,new(),100);double old=a.Prompt;a.Update(g,f,Trusted(),0,new(),100);
+            a.Update(f,null,0,new(),100);double old=a.Prompt;a.Update(g,f,0,new(),100);
             Need(a.DemandRate>0&&a.Prompt<old);
         });
         check("1.2.1 lateral demand lowers reference but is never lock evidence",()=>
@@ -99,18 +99,18 @@ internal static class Brake121Tests
         check("1.2.1 varying valid load reduces reference before slip",()=>
         {
             var b=new BrakeBudget();TelemetryFrame? previous=null;
-            for(int n=0;n<12;n++){var f=F(n) with{Wheels=F(n).Wheels.Select(w=>w with{TireLoadN=3000+n*10}).ToImmutableArray()};b.Update(f,previous,Trusted(),0,new(),100);previous=f;}
+            for(int n=0;n<12;n++){var f=F(n) with{Wheels=F(n).Wheels.Select(w=>w with{TireLoadN=3000+n*10}).ToImmutableArray()};b.Update(f,previous,0,new(),100);previous=f;}
             double before=b.Prompt;var unload=F(12,.4f) with{Wheels=F(12).Wheels.Select(w=>w with{TireLoadN=2000}).ToImmutableArray()};
-            b.Update(unload,previous,Trusted(),0,new(),100);Need(b.LoadFactor<.8&&b.Prompt<before);
+            b.Update(unload,previous,0,new(),100);Need(b.LoadFactor<.8&&b.Prompt<before);
         });
         check("1.2.1 zero or constant loads cannot masquerade as learned capacity",()=>
         {
             foreach(float load in new[]{0f,3000f})
-            {var b=new BrakeBudget();TelemetryFrame? prev=null;for(int n=0;n<50;n++){var f=F(n) with{Wheels=F(n).Wheels.Select(w=>w with{TireLoadN=load}).ToImmutableArray()};b.Update(f,prev,Trusted(),0,new(),100);prev=f;}Need(b.LoadFactor==1&&b.Evidence.Contains("有效载荷 0/4"));}
+            {var b=new BrakeBudget();TelemetryFrame? prev=null;for(int n=0;n<50;n++){var f=F(n) with{Wheels=F(n).Wheels.Select(w=>w with{TireLoadN=load}).ToImmutableArray()};b.Update(f,prev,0,new(),100);prev=f;}Need(b.LoadFactor==1&&b.Evidence.Contains("有效载荷 0/4"));}
         });
         check("1.2.1 safe braking never teaches a true limit",()=>
         {
-            var b=new BrakeBudget();for(int n=0;n<100;n++)b.Update(F(n,.9f),n==0?null:F(n-1,.9f),Trusted(),0,new(),100);
+            var b=new BrakeBudget();for(int n=0;n<100;n++)b.Update(F(n,.9f),n==0?null:F(n-1,.9f),0,new(),100);
             Need(b.Stops==0&&b.Confidence==0&&b.ContextCount==0);
         });
         check("1.2.1 confidence needs independent stops and current setup context",()=>
@@ -119,12 +119,12 @@ internal static class Brake121Tests
             for(int stop=0;stop<3;stop++)
             {
                 foreach(var pair in new[]{(0f,0d),(.6f,0d),(.65f,.08d),(.65f,0d),(.65f,.08d)})
-                {var f=F(n++,pair.Item1);b.Update(f,prev,Trusted(),pair.Item2,new(),100);prev=f;}
+                {var f=F(n++,pair.Item1);b.Update(f,prev,pair.Item2,new(),100);prev=f;}
                 Need(b.Stops==stop+1);if(stop==0)Need(b.Confidence==0);
             }
             Need(b.Confidence>0);
             foreach(var changed in new[]{F(n,.5f) with{RearBrakeBias=.55f},F(n,.5f) with{BrakeMigration=2},F(n,.5f) with{MotorState=3,MotorTorqueNm=-100},F(n,.5f) with{SpeedMps=70}})
-            {b.Update(changed with{SourceTimeSec=n++*.01},prev,Trusted(),0,new(),100);Need(b.Stops==0&&b.Confidence==0);}
+            {b.Update(changed with{SourceTimeSec=n++*.01},prev,0,new(),100);Need(b.Stops==0&&b.Confidence==0);}
         });
         check("1.2.1 stale and car changes erase learned and preset walls",()=>
         {

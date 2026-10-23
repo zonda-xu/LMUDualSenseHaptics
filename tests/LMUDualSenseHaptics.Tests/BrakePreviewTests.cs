@@ -14,7 +14,7 @@ internal static class BrakePreviewTests
     private static TelemetryFrame Frame(int n, float slip = 0, float brake = 0, bool abs = false) =>
         new(n,n*.01,0,true,true,false,"preview","Hypercar",20,0,0,-20,0,0,0,brake,0,0,3,5000,8000,
             abs,false,false,true,Enumerable.Range(0,4).Select(_=>new WheelFrame(60*(1-slip),0,3000,3000,0,.01f,20,0,null,true,
-                BrakePressure01:brake,SlidingFraction:0)).ToImmutableArray(),n*.01,14200,VehicleModel:"preview",AbsSetting:0);
+                BrakePressure01:brake,SlidingFraction:0,LongitudinalPatchMps:20*slip)).ToImmutableArray(),n*.01,14200,VehicleModel:"preview",AbsSetting:0);
     private static SignalEngine Warm(Profile? p = null)
     {
         var e=new SignalEngine();for(int n=0;n<=150;n++)e.Update(Frame(n),p??new());return e;
@@ -62,7 +62,7 @@ internal static class BrakePreviewTests
         });
         check("preview rear-only risk is not averaged away",()=>
         {
-            var e=Warm();var f=Frame(151,0,.7f);f=f with{Wheels=f.Wheels.Select((w,i)=>i==2?w with{OmegaRadPerSec=48}:w).ToImmutableArray()};
+            var e=Warm();var f=Frame(151,0,.7f);f=f with{Wheels=f.Wheels.Select((w,i)=>i==2?w with{OmegaRadPerSec=48,LongitudinalPatchMps=4}:w).ToImmutableArray()};
             e.Update(f,new());Require(e.Braking.RearRisk>.5&&e.Braking.FrontRisk==0&&e.Braking.Risk==e.Braking.RearRisk);
         });
         check("preview wheel collapse works before radius calibration",()=>
@@ -80,7 +80,7 @@ internal static class BrakePreviewTests
         });
         check("preview ordinary car deceleration and local corner speeds do not warn",()=>
         {
-            var e=Warm();var f=Frame(151,0,.7f);f=f with{SpeedMps=18,Wheels=f.Wheels.Select((w,i)=>w with{GroundLongitudinalMps=16+i,OmegaRadPerSec=3*(16+i)}).ToImmutableArray()};
+            var e=Warm();var f=Frame(151,0,.7f);f=f with{SpeedMps=18,Wheels=f.Wheels.Select((w,i)=>w with{GroundLongitudinalMps=16+i,OmegaRadPerSec=3*(16+i),LongitudinalPatchMps=0}).ToImmutableArray()};
             e.Update(f,new());Require(e.Braking.Risk<1e-8);
         });
         check("preview lateral slip and sliding fraction alone cannot trigger brake warning",()=>
@@ -124,12 +124,12 @@ internal static class BrakePreviewTests
             e.Update(Frame(1),p);Require(e.Braking.AbsOnsetBrake is null);
             e.Update(Frame(2,0,.7f,true),p);e.Update(Frame(3) with{CarId="new-car"},p);Require(e.Braking.AbsOnsetBrake is null);
         });
-        check("preview ABS and no-ABS outputs never share a pulse replacement",()=>
+        check("preview no-ABS lock uses a distinct hardware pulse; ABS wall remains independent",()=>
         {
             var p=new Profile();var e=Warm();var f=Frame(151,.6f,.8f);e.Update(f,p);
             var t=new TriggerEngine();var o=t.Render(e,f,f.CapturedAtSec,p).Left;
             var baseline=t.Render(new(),f,f.CapturedAtSec,p).Left;
-            Require(o.Mode==0x21&&Zones(o).Zip(Zones(baseline)).All(x=>x.First>=x.Second));
+            Require(o.Mode==0x26&&o.P8==24&&baseline.Mode==0x21);
             var abs=p with{BrakeMode=BrakeFeedbackMode.Abs};e.Update(Frame(152,.6f,.8f,true),abs);
             Require(e.Braking.Risk==0&&e.Lock==0&&e.Braking.AbsWall==1);
         });

@@ -38,7 +38,7 @@ public sealed class BrakeBudget
         $"{(int)(f.SpeedMps/10)}:{(int)(Math.Abs(f.AccelX)/2.5)}:{Bin(f.RearBrakeBias,.02)}:{f.BrakeMigration}:{f.MotorState}:{Bin(f.MotorTorqueNm,50)}:" +
         string.Join("/",f.Wheels.Select(w=>$"{w.CompoundIndex},{w.SurfaceType},{Bin(w.TireTemperatureK,20)},{Bin(w.Wear01,.1)},{Bin(w.TirePressureKpa,20)}"));
 
-    public void Update(TelemetryFrame f, TelemetryFrame? previous, WheelState[] wheels, double slip, BrakeResponse c, double contactMin)
+    public void Update(TelemetryFrame f, TelemetryFrame? previous, double slip, BrakeResponse c, double contactMin)
     {
         double dt = previous is null ? 0 : f.SourceTimeSec-previous.SourceTimeSec;
         bool pair = dt is >0 and <=.1;
@@ -74,12 +74,12 @@ public sealed class BrakeBudget
         Context=Key(f);
         samples.TryGetValue(Context,out var sample);
         // At most one observation per braking manoeuvre. Require independently
-        // trusted radii and an onset crossing; safe braking is not a limit sample.
+        // validated patch velocities and an onset crossing; safe braking is not a limit sample.
         bool onset=slip>=c.WarningSlip && previousSlip<c.WarningSlip;
         bool clean=driving&&braking&&pair&&f.Brake01>.15&&!f.AbsIntervening&&!f.TcIntervening&&
             (f.FilteredBrake01 is not float filtered || filtered<=.02 || Math.Abs(filtered-f.Brake01)<.1)&&
             previous!.Brake01>.15&&Math.Abs(f.Brake01-previous.Brake01)<.15&&
-            f.LastImpactTime==previous.LastImpactTime&&wheels.All(w=>w.Kappa is not null)&&
+            f.LastImpactTime==previous.LastImpactTime&&f.Wheels.All(w=>BrakeSlip.TryRead(w,contactMin,out _))&&
             f.Wheels.All(w=>WheelContact.IsGrounded(w,contactMin)&&!w.IsKerb);
         if(onset&&clean&&!sampledStop)
         {

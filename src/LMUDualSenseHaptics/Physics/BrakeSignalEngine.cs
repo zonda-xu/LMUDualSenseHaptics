@@ -8,8 +8,9 @@ public sealed class BrakeSignalEngine
 {
     public BrakeBudget Budget { get; } = new();
     public BrakeResponse Response { get; private set; } = new();
-    private readonly double[] rollingRatio = new double[4], reference = new double[4], loss = new double[4], rate = new double[4];
-    private readonly bool[] contact = new bool[4];
+    private readonly double[] lastSlip = new double[4], rate = new double[4];
+    private readonly bool[] valid = new bool[4];
+    public int ValidSlipWheels { get; private set; }
     private BrakeFeedbackMode? previousMode;
     public BrakeFeedbackMode Mode { get; private set; }
     public double Risk { get; private set; }
@@ -29,7 +30,7 @@ public sealed class BrakeSignalEngine
     public void Reset()
     {
         Budget.Reset();
-        Array.Clear(rollingRatio); Array.Clear(reference); Array.Clear(loss); Array.Clear(rate); Array.Clear(contact);
+        Array.Clear(lastSlip); Array.Clear(rate); Array.Clear(valid); ValidSlipWheels=0;
         Risk = LockSeverity = FrontRisk = RearRisk = MaxSlip = MaxSlipRate = AbsWall = 0;
         AbsOnsetBrake = null; previousMode = null;
         Mode = BrakeFeedbackMode.Auto; Evidence = "等待驾驶";
@@ -48,55 +49,29 @@ public sealed class BrakeSignalEngine
         bool braking = f.Brake01 > parameters.InputThreshold && f.SpeedMps >= 5 && f.Gear >= 0;
         double front = 0, rear = 0, lockTarget = 0;
         MaxSlip = MaxSlipRate = 0;
-        bool absoluteEvidence = false, trendEvidence = false;
-        for (int i = 0; i < 4; i++)
+        ValidSlipWheels=0;
+        for(int i=0;i<4;i++)
         {
-            var w = f.Wheels[i];
-            double ground = Math.Abs(w.GroundLongitudinalMps), omega = Math.Abs(w.OmegaRadPerSec);
-            bool grounded = WheelContact.IsGrounded(w, parameters.ContactMinLoad) && ground >= 5;
-            double ratio = grounded ? omega / ground : 0;
-            bool pair = freshPair && grounded && contact[i] && previous is not null &&
-                w.GroundLongitudinalMps * previous.Wheels[i].GroundLongitudinalMps > 0 &&
-                w.OmegaRadPerSec * previous.Wheels[i].OmegaRadPerSec >= 0;
-            double change = pair && rollingRatio[i] > 1e-6 ? ratio / rollingRatio[i] : 1;
-            // Accumulate wheel-speed loss relative to its own local ground speed.
-            // This catches collapse before radius learning finishes, and retains
-            // the loss while the wheel stays slow. It resets at brake release.
-            if (!braking || !grounded || !pair) { loss[i] = 0; rate[i] = 0; reference[i] = ratio; }
-            else
+            var w=f.Wheels[i];
+            bool usable=BrakeSlip.TryRead(w,parameters.ContactMinLoad,out double slip);
+            bool pair=freshPair&&usable&&valid[i]&&previous is not null&&
+                w.GroundLongitudinalMps*previous.Wheels[i].GroundLongitudinalMps>0;
+            rate[i]=pair?Ema(rate[i],Math.Clamp((slip-lastSlip[i])/dt,-4,4),dt,.010):0;
+            if(usable)ValidSlipWheels++;
+            if(usable&&braking)
             {
-                if (reference[i] <= 1e-6) reference[i] = rollingRatio[i];
-                loss[i] = reference[i] > 1e-6 ? C(1 - ratio / reference[i]) : 0;
-                rate[i] = Ema(rate[i], Math.Clamp((1 - change) / dt, -4, 4), dt, .010);
+                double rising=Math.Max(0,rate[i]);
+                double predicted=Math.Min(1,slip+Math.Min(.12,rising*c.PredictionSeconds));
+                double risk=Smooth(c.WarningSlip,c.CriticalSlip,predicted);
+                if(i<2)front=Math.Max(front,risk);else rear=Math.Max(rear,risk);
+                MaxSlip=Math.Max(MaxSlip,slip);MaxSlipRate=Math.Max(MaxSlipRate,rising);
+                lockTarget=Math.Max(lockTarget,Smooth(c.CriticalSlip,c.LockSlip,slip));
             }
-            if (grounded && braking)
-            {
-                double slip = wheels[i].Kappa is double k ? C(-k) : loss[i];
-                // Anchor cumulative loss whenever the independently learned radius is trusted.
-                if (wheels[i].Kappa is not null)
-                {
-                    loss[i] = slip; absoluteEvidence = true;
-                    if (slip < .95 && ratio > 1e-6) reference[i] = ratio / (1 - slip);
-                }
-                else if (pair) trendEvidence = true;
-                double rising = Math.Max(0, rate[i]) * (1 - slip);
-                double predicted = Math.Min(1, slip + Math.Min(.12, rising * c.PredictionSeconds));
-                double risk = Smooth(c.WarningSlip, c.CriticalSlip, predicted);
-                // Pressure and sliding fraction only reinforce longitudinal evidence.
-                // Neither is interpreted as a friction limit or a standalone lock event.
-                if (previous is not null && pair && w.BrakePressure01 is float pressure &&
-                    previous.Wheels[i].BrakePressure01 is float oldPressure && pressure > oldPressure + .01)
-                    risk = C(risk * 1.1);
-                if (w.SlidingFraction is float fraction) risk = C(risk * (1 + .15 * fraction));
-                if (i < 2) front = Math.Max(front, risk); else rear = Math.Max(rear, risk);
-                MaxSlip = Math.Max(MaxSlip, slip); MaxSlipRate = Math.Max(MaxSlipRate, rising);
-                lockTarget = Math.Max(lockTarget, Smooth(c.CriticalSlip, c.LockSlip, slip));
-            }
-            rollingRatio[i] = ratio; contact[i] = grounded;
+            lastSlip[i]=slip;valid[i]=usable;
         }
-        if(Mode==BrakeFeedbackMode.NoAbs)Budget.Update(f,previous,wheels,MaxSlip,c,parameters.ContactMinLoad);
+        if(Mode==BrakeFeedbackMode.NoAbs)Budget.Update(f,previous,MaxSlip,c,parameters.ContactMinLoad);
         bool abs = Mode == BrakeFeedbackMode.Abs && f.AbsIntervening && braking;
-        if (!braking)
+        if (!braking || ValidSlipWheels==0)
         {
             AbsOnsetBrake = null; AbsWall = Risk = LockSeverity = FrontRisk = RearRisk = 0;
         }
@@ -117,6 +92,6 @@ public sealed class BrakeSignalEngine
         }
         Evidence = Mode == BrakeFeedbackMode.Auto ? "ABS 状态未知，请选择刹车模式" :
             Mode == BrakeFeedbackMode.Abs ? "GT3 旧版 / 手动 ABS" :
-            (absoluteEvidence ? "逐轮滑移" : trendEvidence ? "轮速趋势" : "等待轮速校正")+" · "+Budget.Evidence;
+            ($"接触区滑移有效 {ValidSlipWheels}/4")+" · "+Budget.Evidence;
     }
 }

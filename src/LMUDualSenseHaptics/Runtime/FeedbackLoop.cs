@@ -48,7 +48,7 @@ public sealed class FeedbackLoop
                 p.BrakeBase.Gain,
                 RightTriggerSource=="ThrottleBase"?p.ThrottleBase.Gain:0,
                 Math.Max(Signals.Braking.AbsWall*p.Abs.Gain,A(Signals.Abs,.105)*p.Abs.Gain*.12),
-                LeftTriggerSource=="BrakeReference"?p.Lock.Gain:LeftTriggerSource is "Lock" or "BrakeLimit"?Math.Max(Signals.Lock,Signals.Braking.Risk)*p.Lock.Gain:0,
+                LeftTriggerSource=="BrakeReference"?p.Lock.Gain:LeftTriggerSource is "Lock" or "LockPulse" or "BrakeLimit"?Math.Max(Signals.Lock,Signals.Braking.Risk)*p.Lock.Gain:0,
                 RightTriggerSource=="Tc"?(p.ThrottleMode==ThrottleFeedbackMode.TcOnly?p.Tc.Gain:A(Signals.Tc,.135)*p.Tc.Gain):0,
                 RightTriggerSource=="Wheelspin"?A(Signals.Spin,.175)*p.Wheelspin.Gain:0,
                 A(Signals.Shift,.052)*p.Shift.Gain*(RightTriggerSource=="Shift"?1:.22),

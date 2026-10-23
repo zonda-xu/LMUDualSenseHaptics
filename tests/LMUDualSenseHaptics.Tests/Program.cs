@@ -60,7 +60,7 @@ FeedbackParameters synthetic=new(){Name="SYNTHETIC TEST PARAMETERS — NOT REAL 
 Profile p=new(){DefaultParameters=synthetic};
 TelemetryFrame Frame(long n,double t,float omega=60,float brake=0,float throttle=0,bool abs=false,bool tc=false,int gear=3,float speed=20)
 {
-    var w=Enumerable.Range(0,4).Select(_=>new WheelFrame(omega,0,3000,3000,0,0,speed,0,null,true)).ToImmutableArray();
+    var w=Enumerable.Range(0,4).Select(_=>new WheelFrame(omega,0,3000,3000,0,0,speed,0,null,true,LongitudinalPatchMps:speed-omega/3)).ToImmutableArray();
     return new(n,t,0,true,true,false,"synthetic","Hypercar",speed,0,0,-speed,0,0,0,brake,throttle,0,gear,5000,8000,abs,tc,abs,true,w,t,1,VehicleModel:"synthetic");
 }
 if(args.Length>0 && args[0]=="--export-defaults")
@@ -381,6 +381,7 @@ Revision051Tests.Run(Check);
 Revision052Tests.Run(Check);
 BrakePreviewTests.Run(Check);
 Brake121Tests.Run(Check);
+Brake122Tests.Run(Check);
 Console.WriteLine($"RESULT {passed} passed, {failed} failed (synthetic, sanitized recorded fields and fake HID; no hardware claims)");
 Environment.ExitCode=failed==0?0:1;
 

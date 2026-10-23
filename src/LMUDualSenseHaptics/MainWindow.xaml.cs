@@ -47,7 +47,7 @@ public partial class MainWindow:Window
             AddFeature(BrakeSettings,"BrakeBase","L2 基础阻力","按下刹车时提供逐渐增强的阻力。");
             BrakeModeChoice.SelectedIndex=(int)runtime.Profile.BrakeMode;
             AddFeature(BrakeSettings,"Abs","ABS 提示","自动 GT3 使用旧版 ABS 脉冲；手动 ABS 模式使用介入阻力墙。");
-            AddFeature(BrakeSettings,"Lock","临界制动预警","其他车型预设临界阻力位置并随状态修正；GT3 保留旧版抱死提示。");
+            AddFeature(BrakeSettings,"Lock","临界制动预警","其他车型按接触区滑移预警，明显抱死输出 24 Hz 脉冲；GT3 保留旧版提示。");
             var brakeResponse=runtime.Profile.DefaultParameters.BrakeResponse;
             AddSetting("初始刹车上限参考",40,95,(int)(brakeResponse.InitialLimit*100),"未经车型标定的起点；系统会减去不确定性余量。",v=>SetBrakeResponse(runtime.Profile.DefaultParameters.BrakeResponse with{InitialLimit=v/100.0}),"%",BrakeSettings);
             AddSetting("L2 起始死区",0,30,(int)(brakeResponse.TravelDeadzone*100),"填入游戏中刹车轴起始死区；软件不读取真实扳机行程。",v=>SetBrakeResponse(runtime.Profile.DefaultParameters.BrakeResponse with{TravelDeadzone=v/100.0}),"%",BrakeSettings);
@@ -230,7 +230,7 @@ public partial class MainWindow:Window
         ErrorText.Text=s.Error;ErrorBanner.Visibility=string.IsNullOrEmpty(s.Error)?Visibility.Collapsed:Visibility.Visible;
         ValidationText.Text=$"{s.Telemetry}\n手柄：{s.Device}\n参数：{s.ParameterSource}\n{s.LearningState}";
         int brake=EncodedPeak(s.Output.LeftTrigger),throttle=EncodedPeak(s.Output.RightTrigger);
-        BrakeOutputText.Text=brake==0?"释放":(s.LeftTriggerSource switch{"Abs"=>"ABS 脉冲","AbsWall"=>"ABS 阻力墙","BrakeReference"=>"临界位置参考","BrakeLimit"=>"接近抱死","Lock"=>"抱死提醒",_=>"基础阻力"})+$" · {brake} / 8";
+        BrakeOutputText.Text=brake==0?"释放":(s.LeftTriggerSource switch{"Abs"=>"ABS 脉冲","AbsWall"=>"ABS 阻力墙","BrakeReference"=>"临界位置参考","BrakeLimit"=>"接近抱死","LockPulse"=>"抱死脉冲","Lock"=>"抱死提醒",_=>"基础阻力"})+$" · {brake} / 8";
         ThrottleOutputText.Text=throttle==0?"自由行程":s.RightTriggerSource=="Tc"?$"TC · {throttle} / 8":$"{throttle} / 8";
         BrakeMeter.Value=brake;ThrottleMeter.Value=throttle;
         LeftGripMeter.Maximum=RightGripMeter.Maximum=audioMode?1:255;
