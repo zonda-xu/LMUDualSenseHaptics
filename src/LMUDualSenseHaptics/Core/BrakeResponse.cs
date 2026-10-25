@@ -9,6 +9,9 @@ public sealed record BrakeResponse
     public double PredictionSeconds { get; init; } = .04;
     public double AttackSeconds { get; init; } = .008;
     public double ReleaseSeconds { get; init; } = .040;
+    // Minimum cue tail after the last supported threshold sample; lift and
+    // invalid contact always cancel it. Uses source time, never output ticks.
+    public double CueHoldSeconds { get; init; } = .160;
 
     // Engineering prior, not a measured optimal brake input. Learning only uses
     // independently observed slip onset, never an uneventful pedal application.
@@ -25,10 +28,10 @@ public sealed record BrakeResponse
 
     public void Validate()
     {
-        double[] values = [WarningSlip, CriticalSlip, LockSlip, PredictionSeconds, AttackSeconds, ReleaseSeconds,InitialLimit,UncertaintyMargin,DemandLeadSeconds,LateralReduction,MinimumPrompt,TravelDeadzone,TravelEnd,InputExponent];
+        double[] values = [WarningSlip, CriticalSlip, LockSlip, PredictionSeconds, AttackSeconds, ReleaseSeconds,CueHoldSeconds,InitialLimit,UncertaintyMargin,DemandLeadSeconds,LateralReduction,MinimumPrompt,TravelDeadzone,TravelEnd,InputExponent];
         if (values.Any(v => !double.IsFinite(v)) || WarningSlip < .02 || CriticalSlip <= WarningSlip ||
             LockSlip <= CriticalSlip || LockSlip > .8 || PredictionSeconds is < 0 or > .08 ||
-            AttackSeconds is < .004 or > .03 || ReleaseSeconds is < .01 or > .15 || InitialLimit is < .4 or > .95 ||
+            AttackSeconds is < .004 or > .03 || ReleaseSeconds is < .01 or > .15 || CueHoldSeconds is < .08 or > .3 || InitialLimit is < .4 or > .95 ||
             UncertaintyMargin is < .03 or > .25 || DemandLeadSeconds is < 0 or > .15 ||
             LateralReduction is < 0 or > .5 || MinimumPrompt is < .1 or > .4 ||
             TravelDeadzone is < 0 or > .3 || TravelEnd is < .5 or > 1 ||

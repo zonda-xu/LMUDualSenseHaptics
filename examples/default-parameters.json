@@ -1,5 +1,5 @@
 {
-  "Name": "LMU v1.2.2 初始参数",
+  "Name": "LMU v1.3-preview 初始参数",
   "RoadResponse": {
     "SuspensionNoiseMps": 0.012,
     "SuspensionFullMps": 0.16,
@@ -62,6 +62,7 @@
     "MinimumPrompt": 0.2,
     "TravelDeadzone": 0,
     "TravelEnd": 1,
-    "InputExponent": 1
+    "InputExponent": 1,
+    "CueHoldSeconds": 0.16
   }
 }

@@ -3,7 +3,7 @@ namespace LMUDualSenseHaptics.Core;
 // Explicit starting values, not a claim of measured vehicle calibration.
 public sealed record FeedbackParameters
 {
-    public string Name {get;init;}="LMU v1.2.2 初始参数";
+    public string Name {get;init;}="LMU v1.3-preview 初始参数";
     public BrakeResponse BrakeResponse {get;init;}=new();
     public RoadResponse RoadResponse {get;init;}=new();
     public double V0 {get;init;}=.025;

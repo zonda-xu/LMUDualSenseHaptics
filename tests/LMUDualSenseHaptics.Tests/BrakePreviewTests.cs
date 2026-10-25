@@ -52,7 +52,7 @@ internal static class BrakePreviewTests
             var p=new Profile();var e=Warm();var f=Frame(151,.08f,.7f);e.Update(f,p);
             var t=new TriggerEngine();var o=t.Render(e,f,f.CapturedAtSec,p);
             Require(e.Braking.MaxSlip<.1&&e.Braking.Risk>.2&&t.LeftSource=="BrakeLimit");
-            Require(o.Left.Mode==0x21&&Zones(o.Left)[6]>Zones(new TriggerEngine().Render(new(),f,f.CapturedAtSec,p).Left)[6]);
+            Require(o.Left.Mode==0x26&&o.Left.P8==12&&Zones(o.Left)[6]>0);
         });
         check("preview trend prediction advances warning at equal measured slip",()=>
         {

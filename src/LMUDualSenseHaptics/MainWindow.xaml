@@ -1,5 +1,5 @@
 <Window x:Class="LMUDualSenseHaptics.MainWindow" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" Title="LMU · DualSense Haptics v1.2.2"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" Title="LMU · DualSense Haptics v1.3-preview"
         Icon="pack://application:,,,/Assets/AppIcon.ico"
         Style="{StaticResource {x:Type Window}}" Width="1040" Height="900" MinWidth="820" MinHeight="640">
     <Grid>
@@ -7,7 +7,7 @@
         <Border Background="{DynamicResource SurfaceBrush}" Padding="28,20" BorderBrush="{DynamicResource OutlineVariantBrush}" BorderThickness="0,0,0,1">
             <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                 <StackPanel><TextBlock Text="DualSense Haptics" FontSize="26" FontWeight="SemiBold" LineHeight="34"/>
-                    <TextBlock Text="LE MANS ULTIMATE  /  v1.2.2 · USB 手柄反馈" Style="{StaticResource Muted}" Margin="0,4,0,0"/>
+                    <TextBlock Text="LE MANS ULTIMATE  /  v1.3-preview · USB 手柄反馈" Style="{StaticResource Muted}" Margin="0,4,0,0"/>
                 </StackPanel>
                 <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
                     <Button x:Name="ThemeButton" Content="深色外观" Style="{StaticResource TextButton}" Click="ThemeClick"/>

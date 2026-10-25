@@ -10,6 +10,9 @@ public sealed class BrakeSignalEngine
     public BrakeResponse Response { get; private set; } = new();
     private readonly double[] lastSlip = new double[4], rate = new double[4];
     private readonly bool[] valid = new bool[4];
+    private readonly double[] warningUntil = new double[4], lockUntil = new double[4];
+    public bool WarningActive { get; private set; }
+    public bool LockActive { get; private set; }
     public int ValidSlipWheels { get; private set; }
     private BrakeFeedbackMode? previousMode;
     public BrakeFeedbackMode Mode { get; private set; }
@@ -31,6 +34,8 @@ public sealed class BrakeSignalEngine
     {
         Budget.Reset();
         Array.Clear(lastSlip); Array.Clear(rate); Array.Clear(valid); ValidSlipWheels=0;
+        Array.Fill(warningUntil,double.NegativeInfinity); Array.Fill(lockUntil,double.NegativeInfinity);
+        WarningActive=LockActive=false;
         Risk = LockSeverity = FrontRisk = RearRisk = MaxSlip = MaxSlipRate = AbsWall = 0;
         AbsOnsetBrake = null; previousMode = null;
         Mode = BrakeFeedbackMode.Auto; Evidence = "等待驾驶";
@@ -50,6 +55,7 @@ public sealed class BrakeSignalEngine
         double front = 0, rear = 0, lockTarget = 0;
         MaxSlip = MaxSlipRate = 0;
         ValidSlipWheels=0;
+        WarningActive=LockActive=false;
         for(int i=0;i<4;i++)
         {
             var w=f.Wheels[i];
@@ -66,7 +72,24 @@ public sealed class BrakeSignalEngine
                 if(i<2)front=Math.Max(front,risk);else rear=Math.Max(rear,risk);
                 MaxSlip=Math.Max(MaxSlip,slip);MaxSlipRate=Math.Max(MaxSlipRate,rising);
                 lockTarget=Math.Max(lockTarget,Smooth(c.CriticalSlip,c.LockSlip,slip));
+                if(Mode==BrakeFeedbackMode.NoAbs)
+                {
+                    // Per-wheel hysteresis prevents a single threshold crossing
+                    // from becoming a one-frame flash. Bad/airborne wheels cannot
+                    // borrow contact evidence from another wheel to keep a cue alive.
+                    double t=f.SourceTimeSec;
+                    bool warning=t<warningUntil[i], locked=t<lockUntil[i];
+                    if(predicted>=c.WarningSlip || warning&&predicted>=c.WarningSlip*.7)
+                        warningUntil[i]=t+c.CueHoldSeconds;
+                    // Severe slip acts on the first valid sample, without waiting
+                    // for a filtered envelope or a learned radius to catch up.
+                    if(slip>=c.LockSlip || locked&&slip>=c.CriticalSlip)
+                        lockUntil[i]=t+c.CueHoldSeconds;
+                    WarningActive|=t<warningUntil[i]; LockActive|=t<lockUntil[i];
+                }
             }
+            if(!usable||!braking||Mode!=BrakeFeedbackMode.NoAbs)
+                warningUntil[i]=lockUntil[i]=double.NegativeInfinity;
             lastSlip[i]=slip;valid[i]=usable;
         }
         if(Mode==BrakeFeedbackMode.NoAbs)Budget.Update(f,previous,MaxSlip,c,parameters.ContactMinLoad);
@@ -92,6 +115,6 @@ public sealed class BrakeSignalEngine
         }
         Evidence = Mode == BrakeFeedbackMode.Auto ? "ABS 状态未知，请选择刹车模式" :
             Mode == BrakeFeedbackMode.Abs ? "GT3 旧版 / 手动 ABS" :
-            ($"接触区滑移有效 {ValidSlipWheels}/4")+" · "+Budget.Evidence;
+            ($"接触区滑移有效 {ValidSlipWheels}/4 · 提示 {(LockActive?"抱死脉冲":WarningActive?"临界脉冲":"无")}")+" · "+Budget.Evidence;
     }
 }

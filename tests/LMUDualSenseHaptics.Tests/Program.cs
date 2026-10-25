@@ -27,7 +27,7 @@ if(args.Length>0 && args[0] is "--replay" or "--replay-raw")
             var transport=HapticsOutputRouting.ForTransport(output,profile.AudioHaptics.Enabled);
             DualSenseReportBuilder.Build(transport,report);synth.Render(audio,pcm,next);
             bool speakerSilence=Enumerable.Range(0,192).All(i=>pcm[i*4]==0&&pcm[i*4+1]==0);
-            result.WriteLine(JsonSerializer.Serialize(new{Sequence=current.Sequence,At=next,RawTc=current.TcIntervening,Output=output,Transport=transport,Audio=audio,AudioLevels=synth.Levels,SpeakerChannelsSilent=speakerSilence,HidFlag0=report[1],HidFlag2=report[39],State=loop.Reason,loop.Signals.Abs,loop.Signals.Lock,BrakeRisk=loop.Signals.Braking.Risk,BrakeSlip=loop.Signals.Braking.MaxSlip,BrakeValidWheels=loop.Signals.Braking.ValidSlipWheels,loop.Signals.Tc,loop.Signals.Spin,loop.Signals.LeftRoad,loop.Signals.RightRoad,loop.Signals.Impact,loop.AdvancedFeedbackEnabled,loop.ParameterSource,loop.Channels,loop.LeftTriggerSource,loop.RightTriggerSource,Layers=loop.Layers},ProfileStore.JsonCompact));
+            result.WriteLine(JsonSerializer.Serialize(new{Sequence=current.Sequence,At=next,RawTc=current.TcIntervening,Output=output,Transport=transport,Audio=audio,AudioLevels=synth.Levels,SpeakerChannelsSilent=speakerSilence,HidFlag0=report[1],HidFlag2=report[39],State=loop.Reason,loop.Signals.Abs,loop.Signals.Lock,BrakeRisk=loop.Signals.Braking.Risk,BrakeSlip=loop.Signals.Braking.MaxSlip,BrakeValidWheels=loop.Signals.Braking.ValidSlipWheels,BrakeWarningActive=loop.Signals.Braking.WarningActive,BrakeLockActive=loop.Signals.Braking.LockActive,loop.Signals.Tc,loop.Signals.Spin,loop.Signals.LeftRoad,loop.Signals.RightRoad,loop.Signals.Impact,loop.AdvancedFeedbackEnabled,loop.ParameterSource,loop.Channels,loop.LeftTriggerSource,loop.RightTriggerSource,Layers=loop.Layers},ProfileStore.JsonCompact));
             next+=.004;n++;
         }
     }
@@ -382,6 +382,7 @@ Revision052Tests.Run(Check);
 BrakePreviewTests.Run(Check);
 Brake121Tests.Run(Check);
 Brake122Tests.Run(Check);
+Brake13Tests.Run(Check);
 Console.WriteLine($"RESULT {passed} passed, {failed} failed (synthetic, sanitized recorded fields and fake HID; no hardware claims)");
 Environment.ExitCode=failed==0?0:1;
 

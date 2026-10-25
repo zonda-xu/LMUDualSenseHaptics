@@ -32,3 +32,7 @@
 - ACC-DualSense-Feedback： https://github.com/Adudumax/ACC-DualSense-Feedback 。USB 与扳机代码的改编范围、固定提交及 MIT 许可见根目录 THIRD_PARTY_NOTICES.md。
 - pyLMUSharedMemory： https://github.com/TinyPedal/pyLMUSharedMemory/blob/master/lmu_data.py 。用于核对公开共享内存结构、车轮字段、地表类型和 TC 标志；未纳入其 Python 实现。事实表见 layout-facts.json。
 - Google Material 3： https://developer.android.com/develop/ui/compose/designsystems/material3 。用于界面颜色、形状与排版概念，原生 WPF 独立实现。
+
+## v1.3-preview 制动提示参考（2026-10-25）
+
+[F1 25 UDP 官方规范、HorizonHaptics 与 Forza-Horizon-DualSense-Python 的核对结果](BRAKE_1_3_PREVIEW.md#参考方案与边界)：参考逐轮滑移观测、硬件振动、效果优先级及滞回概念。没有复制第三方实现，也没有把 F1 25 UDP 规范当作其内部触觉算法。

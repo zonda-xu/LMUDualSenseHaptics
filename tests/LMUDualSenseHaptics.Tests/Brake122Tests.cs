@@ -28,7 +28,7 @@ internal static class Brake122Tests
             var loop=new FeedbackLoop();var p=new Profile{BrakeBase=new(true,5),Lock=new(true,35)};
             var f=F(0,.09f);var o=loop.Tick(f,0,p);
             Need(loop.Signals.Wheels.All(w=>w.Kappa is null)&&loop.Signals.Braking.ValidSlipWheels==4);
-            Need(loop.LeftTriggerSource=="BrakeLimit"&&o.LeftTrigger.Mode==0x21&&Peak(o.LeftTrigger)>0);
+            Need(loop.LeftTriggerSource=="BrakeLimit"&&o.LeftTrigger.Mode==0x26&&o.LeftTrigger.P8==12&&Peak(o.LeftTrigger)>0);
         });
         check("1.2.2 measured warning threshold is independent of strength",()=>
         {

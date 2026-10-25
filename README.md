@@ -1,6 +1,6 @@
 # LMU DualSense Haptics
 
-为 **Le Mans Ultimate（勒芒终极版）** 提供 DualSense USB 自适应扳机和左右握把音圈反馈。当前版本：**v1.2.2**。界面为中文。
+为 **Le Mans Ultimate（勒芒终极版）** 提供 DualSense USB 自适应扳机和左右握把音圈反馈。当前版本：**v1.3-preview**。界面为中文。
 
 ## 功能
 
@@ -21,14 +21,14 @@
 
 ## 下载与开始使用
 
-1. 在仓库 **Releases** 页面下载 `LMUDualSenseHaptics-win-x64-v1.2.2.zip`，完整解压后运行 `LMUDualSenseHaptics.exe`。自包含版本无需另外安装 .NET。
+1. 在仓库 **Releases** 页面下载 `LMUDualSenseHaptics-win-x64-v1.3-preview.zip`，完整解压后运行 `LMUDualSenseHaptics.exe`。自包含版本无需另外安装 .NET。
 2. 用 USB 数据线连接 DualSense。关闭 Steam Input、DSX、DS4Windows 等软件对同一手柄的震动输出。按键映射可按需继续使用；映射软件也可能占用手柄，连接异常时先退出相关软件排查。
 3. 让游戏声音继续通过耳机或音箱播放。不要将 DualSense 设为游戏声音输出设备。
 4. 在“路面与震动”中启用“使用 USB 音圈震动”，选择当前手柄音频设备；通常可使用自动选择。
 5. 离开驾驶状态，在“连接与工具”中点击“左握把震动”和“右握把震动”。各持续 1 秒，确认方向和实际震动。
 6. 启动 LMU 并进入驾驶，程序自动启用反馈。先调节路面和路肩强度，再增加引擎等效果，最后点击“保存配置”。
 
-在“自适应扳机”中选择自动切换，可在 GT3 与其他车型间反复切换。未标定时不输出持续参考墙；界面可设置刹车轴死区、满刹行程和曲线指数。详见 [v1.2.2 刹车算法说明](docs/BRAKE_1_2_2.md)。
+在“自适应扳机”中选择自动切换，可在 GT3 与其他车型间反复切换。未标定时不输出持续参考墙；界面可设置刹车轴死区、满刹行程和曲线指数。详见 [v1.3-preview 刹车算法说明](docs/BRAKE_1_3_PREVIEW.md)。
 
 顶部左右握把读数是软件输出电平；L2/R2 数值表示扳机输出等级。握把震动频率用于调节触感。详细使用及故障排查见 [使用指南](docs/USER_GUIDE.md)。
 
@@ -46,7 +46,7 @@ Windows 安装 **.NET 8 SDK**，在仓库根目录运行 `build.cmd`，或在 Po
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build.ps1
 ```
 
-脚本构建 Release、执行 C# 回归测试、发布自包含 Windows x64 应用，并生成 `artifacts/LMUDualSenseHaptics-win-x64-v1.2.2.zip`。无需安装额外的运行时 NuGet 依赖。
+脚本构建 Release、执行 C# 回归测试、发布自包含 Windows x64 应用，并生成 `artifacts/LMUDualSenseHaptics-win-x64-v1.3-preview.zip`。无需安装额外的运行时 NuGet 依赖。
 
 ```powershell
 # 仅运行算法与协议回归测试
