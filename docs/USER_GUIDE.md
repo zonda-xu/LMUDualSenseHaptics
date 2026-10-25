@@ -1,3 +1,5 @@
+> v1.3.9-preview 保留 v1.3-preview 算法，新增 [每辆车独立扳机设置与整洁目录](VEHICLE_TRIGGER_PROFILES.md)。根目录 EXE 为启动器，请同时保留 `bin` 和 `docs`。
+
 > 当前无 ABS 刹车行为见 [v1.3-preview 说明](BRAKE_1_3_PREVIEW.md)：12 Hz 临界脉冲、24 Hz 抱死脉冲及短暂保持。下文涉及 v1.2.1 的行为属于历史版本。
 
 > v1.2.1 刹车行为以 [当前算法说明](BRAKE_1_2_1.md) 为准；下文保留此前功能和验证记录。

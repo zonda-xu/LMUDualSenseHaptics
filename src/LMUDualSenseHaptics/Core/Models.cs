@@ -66,6 +66,8 @@ public enum ThrottleFeedbackMode { TcOnly, Legacy }
 
 public sealed record Profile
 {
+    public TriggerSettings? TriggerDefaults {get;init;}
+    public ImmutableArray<VehicleTriggerSettings> VehicleTriggers {get;init;}=[];
     public BrakeFeedbackMode BrakeMode { get; init; } = BrakeFeedbackMode.Auto;
     public AudioHapticsSettings AudioHaptics { get; init; } = new();
     // Missing members in v0.3 JSON receive these defaults without discarding L2 gains.
@@ -105,6 +107,16 @@ public sealed record Profile
         if(DefaultParameters is null || VehiclePresets.IsDefault)throw new InvalidDataException("缺少默认参数或车型预设列表");
         DefaultParameters.Validate();
         var identities=new HashSet<(int,string,string)>();
+        TriggerDefaults?.Validate();
+        if(VehicleTriggers.IsDefault)throw new InvalidDataException("车辆扳机配置集合为空");
+        var triggerIdentities=new HashSet<(string,string)>();
+        foreach(var vehicle in VehicleTriggers)
+        {
+            if(vehicle is null)throw new InvalidDataException("车辆扳机配置为空");
+            vehicle.Validate();
+            if(!triggerIdentities.Add((vehicle.VehicleModel.Trim().ToUpperInvariant(),vehicle.VehicleClass.Trim().ToUpperInvariant())))
+                throw new InvalidDataException("车辆扳机配置身份重复");
+        }
         foreach(var preset in VehiclePresets)
         {
             if(preset is null)throw new InvalidDataException("车型预设为空");

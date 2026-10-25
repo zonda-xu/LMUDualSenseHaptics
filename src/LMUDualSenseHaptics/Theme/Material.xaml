@@ -213,4 +213,54 @@
         <Setter Property="Padding" Value="12,8"/>
         <Setter Property="MaxWidth" Value="420"/>
     </Style>
+    <Style TargetType="ComboBoxItem">
+        <Setter Property="Padding" Value="14,10"/>
+        <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+        <Setter Property="Foreground" Value="{DynamicResource OnSurfaceBrush}"/>
+        <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ComboBoxItem">
+            <Border x:Name="Item" Background="Transparent" CornerRadius="8" Padding="{TemplateBinding Padding}">
+                <ContentPresenter/>
+            </Border>
+            <ControlTemplate.Triggers>
+                <Trigger Property="IsHighlighted" Value="True"><Setter TargetName="Item" Property="Background" Value="{DynamicResource SurfaceHighBrush}"/></Trigger>
+                <Trigger Property="IsSelected" Value="True"><Setter TargetName="Item" Property="Background" Value="{DynamicResource PrimaryContainerBrush}"/><Setter Property="Foreground" Value="{DynamicResource OnPrimaryContainerBrush}"/></Trigger>
+                <Trigger Property="IsEnabled" Value="False"><Setter TargetName="Item" Property="Opacity" Value="0.42"/></Trigger>
+            </ControlTemplate.Triggers>
+        </ControlTemplate></Setter.Value></Setter>
+    </Style>
+    <Style TargetType="ComboBox">
+        <Setter Property="MinHeight" Value="44"/>
+        <Setter Property="Padding" Value="14,10,40,10"/>
+        <Setter Property="Foreground" Value="{DynamicResource OnSurfaceBrush}"/>
+        <Setter Property="Background" Value="{DynamicResource SurfaceLowBrush}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource OutlineBrush}"/>
+        <Setter Property="FocusVisualStyle" Value="{StaticResource KeyboardFocus}"/>
+        <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled"/>
+        <Setter Property="ScrollViewer.VerticalScrollBarVisibility" Value="Auto"/>
+        <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ComboBox">
+            <Grid x:Name="Root">
+                <ToggleButton Focusable="False" ClickMode="Press" IsChecked="{Binding IsDropDownOpen, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}">
+                    <ToggleButton.Template><ControlTemplate TargetType="ToggleButton">
+                        <Border x:Name="Chrome" Background="{DynamicResource SurfaceLowBrush}" BorderBrush="{DynamicResource OutlineBrush}" BorderThickness="1" CornerRadius="10">
+                            <Path Data="M 0,0 L 5,5 L 10,0" Stroke="{DynamicResource OnSurfaceVariantBrush}" StrokeThickness="2" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,16,0"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Chrome" Property="Background" Value="{DynamicResource SurfaceHighBrush}"/></Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate></ToggleButton.Template>
+                </ToggleButton>
+                <ContentPresenter Margin="{TemplateBinding Padding}" VerticalAlignment="Center" IsHitTestVisible="False"
+                    Content="{TemplateBinding SelectionBoxItem}" ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}" ContentTemplateSelector="{TemplateBinding ItemTemplateSelector}"/>
+                <Popup x:Name="PART_Popup" Placement="Bottom" IsOpen="{TemplateBinding IsDropDownOpen}" AllowsTransparency="True" Focusable="False" PopupAnimation="Fade">
+                    <Border MinWidth="{Binding ActualWidth, RelativeSource={RelativeSource TemplatedParent}}" MaxHeight="{TemplateBinding MaxDropDownHeight}"
+                            Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource OutlineVariantBrush}" BorderThickness="1" CornerRadius="10" Padding="4" Margin="0,4,0,0">
+                        <ScrollViewer CanContentScroll="True"><ItemsPresenter KeyboardNavigation.DirectionalNavigation="Contained"/></ScrollViewer>
+                    </Border>
+                </Popup>
+            </Grid>
+            <ControlTemplate.Triggers>
+                <Trigger Property="IsEnabled" Value="False"><Setter TargetName="Root" Property="Opacity" Value="0.42"/></Trigger>
+            </ControlTemplate.Triggers>
+        </ControlTemplate></Setter.Value></Setter>
+    </Style>
 </ResourceDictionary>

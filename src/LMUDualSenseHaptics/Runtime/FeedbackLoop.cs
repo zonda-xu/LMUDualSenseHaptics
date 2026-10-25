@@ -9,6 +9,11 @@ public sealed class FeedbackLoop
     private FeedbackParameters? activeParameters;
     private BrakeFeedbackMode? activeBrakeMode;
     private VehiclePreset? activePreset;
+    private Profile? cachedRoot,cachedTrigger,validatedRoot;
+    private FeedbackParameters? parameterBase,selectedParameters;
+    private BrakeResponse? selectedResponse;
+    private VehicleTriggerSettings? cachedVehicle;
+    public string TriggerProfileSource {get;private set;}="通用扳机设置";
     private readonly TriggerEngine triggers=new();public FrameMixer Mixer {get;}=new();
     public string Reason {get;private set;}="WaitingForLMU";
     public bool AdvancedFeedbackEnabled {get;private set;}
@@ -21,7 +26,7 @@ public sealed class FeedbackLoop
     {
         try
         {
-            p.Validate();
+            if(!ReferenceEquals(validatedRoot,p)){p.Validate();validatedRoot=p;}
             if(f is null)return Off("WaitingForLMU");
             f.Validate();
             if(!f.Connected)return Off("Disconnected");
@@ -29,19 +34,35 @@ public sealed class FeedbackLoop
             if(!f.Driving)return Off("非驾驶状态");
             double age=now-f.CapturedAtSec+f.SourceAgeSec;
             if(age<0||age>p.TelemetryStaleMs/1000.0)return Off("Stale：遥测超时/时钟逆序");
+            var root=p;
+            var vehicle=TriggerProfiles.Find(root,f);
+            if(!ReferenceEquals(cachedRoot,root)||!ReferenceEquals(cachedVehicle,vehicle))
+            {
+                cachedRoot=root;cachedVehicle=vehicle;cachedTrigger=TriggerProfiles.Resolve(root,f);
+                triggers.Reset();
+            }
+            p=cachedTrigger!;
+            TriggerProfileSource=vehicle is null?"通用扳机设置":"车辆专属："+vehicle.VehicleModel+" · "+vehicle.VehicleClass;
             var preset=p.VehiclePresets.FirstOrDefault(v=>v.Matches(f));
             var parameters=preset?.Parameters??p.DefaultParameters;
+            var settings=vehicle?.Settings??root.TriggerDefaults;
+            if(!ReferenceEquals(parameterBase,parameters)||selectedResponse!=settings?.BrakeResponse)
+            {
+                parameterBase=parameters;selectedResponse=settings?.BrakeResponse;
+                selectedParameters=settings is null?parameters:parameters with{BrakeResponse=settings.BrakeResponse};
+            }
+            parameters=selectedParameters!;
             if(activeParameters!=parameters||activePreset!=preset||activeBrakeMode!=p.BrakeMode)
             {Signals.Reset();triggers.Reset();activeParameters=parameters;activePreset=preset;activeBrakeMode=p.BrakeMode;}
             Signals.Update(f,p,parameters);
             AdvancedFeedbackEnabled=true;
             ParameterSource=preset is null?"默认初始参数："+parameters.Name:"已验证车型预设："+parameters.Name;
-            Reason="Driving："+ParameterSource;
-            Layers=GripEngine.Render(Signals,f,now,p);
+            Reason="Driving："+ParameterSource+" · "+TriggerProfileSource;
+            Layers=GripEngine.Render(Signals,f,now,root);
             var triggerFrame=triggers.Render(Signals,f,now,p);
             LeftTriggerSource=triggerFrame.Left.Mode==5?"OFF":triggers.LeftSource;
             RightTriggerSource=triggerFrame.Right.Mode==5?"OFF":triggers.RightSource;
-            var output=Mixer.Mix(triggerFrame,Layers,p);
+            var output=Mixer.Mix(triggerFrame,Layers,root);
             double A(double value,double tau)=>Signals.At(value,now,f,tau);
             // Requested channel levels before nonlinear mixing, not physical acceleration.
             Channels=new(
@@ -51,7 +72,7 @@ public sealed class FeedbackLoop
                 LeftTriggerSource=="BrakeReference"?p.Lock.Gain:LeftTriggerSource is "Lock" or "LockPulse" or "BrakeLimit"?Math.Max(Signals.Lock,Signals.Braking.Risk)*p.Lock.Gain:0,
                 RightTriggerSource=="Tc"?(p.ThrottleMode==ThrottleFeedbackMode.TcOnly?p.Tc.Gain:A(Signals.Tc,.135)*p.Tc.Gain):0,
                 RightTriggerSource=="Wheelspin"?A(Signals.Spin,.175)*p.Wheelspin.Gain:0,
-                A(Signals.Shift,.052)*p.Shift.Gain*(RightTriggerSource=="Shift"?1:.22),
+                A(Signals.Shift,.052)*(RightTriggerSource=="Shift"?p.Shift.Gain:root.Shift.Gain*.22),
                 RightTriggerSource=="Redline"?A(Signals.Redline,.1)*p.Redline.Gain:0,
                 Math.Max(Layers.RoadL,Layers.RoadR)*Mixer.ContinuousGain,
                 Math.Max(Layers.SlipL,Layers.SlipR)*Mixer.ContinuousGain,
@@ -64,7 +85,7 @@ public sealed class FeedbackLoop
     }
     public FeedbackFrame Off(string reason)
     {
-        Signals.Reset();triggers.Reset();activeParameters=null;activePreset=null;activeBrakeMode=null;AdvancedFeedbackEnabled=false;
+        Signals.Reset();triggers.Reset();cachedRoot=cachedTrigger=null;cachedVehicle=null;TriggerProfileSource="通用扳机设置";activeParameters=null;activePreset=null;activeBrakeMode=null;AdvancedFeedbackEnabled=false;
         Layers=default;Channels=default;LeftTriggerSource=RightTriggerSource="OFF";ParameterSource="等待驾驶";Mixer.ResetDiagnostics();Reason=reason;return FeedbackFrame.Off;
     }
 }

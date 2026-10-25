@@ -1,5 +1,5 @@
 <Window x:Class="LMUDualSenseHaptics.MainWindow" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" Title="LMU · DualSense Haptics v1.3-preview"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" Title="LMU · DualSense Haptics v1.3.9-preview"
         Icon="pack://application:,,,/Assets/AppIcon.ico"
         Style="{StaticResource {x:Type Window}}" Width="1040" Height="900" MinWidth="820" MinHeight="640">
     <Grid>
@@ -7,7 +7,7 @@
         <Border Background="{DynamicResource SurfaceBrush}" Padding="28,20" BorderBrush="{DynamicResource OutlineVariantBrush}" BorderThickness="0,0,0,1">
             <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                 <StackPanel><TextBlock Text="DualSense Haptics" FontSize="26" FontWeight="SemiBold" LineHeight="34"/>
-                    <TextBlock Text="LE MANS ULTIMATE  /  v1.3-preview · USB 手柄反馈" Style="{StaticResource Muted}" Margin="0,4,0,0"/>
+                    <TextBlock Text="LE MANS ULTIMATE  /  v1.3.9-preview · USB 手柄反馈" Style="{StaticResource Muted}" Margin="0,4,0,0"/>
                 </StackPanel>
                 <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
                     <Button x:Name="ThemeButton" Content="深色外观" Style="{StaticResource TextButton}" Click="ThemeClick"/>
@@ -64,6 +64,20 @@
                     <TabItem Header="扳机反馈">
                         <StackPanel x:Name="TriggerSettingsRoot">
                             <Border Style="{StaticResource Card}"><StackPanel>
+                                <TextBlock Text="车辆扳机配置" Style="{StaticResource SectionTitle}"/>
+                                <TextBlock x:Name="ActiveTriggerProfileText" Style="{StaticResource Muted}" Margin="0,0,0,8"/>
+                                <ComboBox x:Name="VehicleTriggerChoice" DisplayMemberPath="Name" SelectionChanged="VehicleTriggerChoiceChanged" AutomationProperties.Name="编辑车辆扳机配置"/>
+                                <CheckBox x:Name="FollowVehicleCheck" Content="编辑面板跟随当前车辆" IsChecked="True" Checked="FollowVehicleChanged" Unchecked="FollowVehicleChanged" Margin="0,8,0,0"/>
+                                <TextBlock x:Name="TriggerScopeHint" Style="{StaticResource Muted}" Margin="0,8,0,12"/>
+                                <WrapPanel>
+                                    <Button x:Name="CreateVehicleButton" Content="为此车创建配置" Click="CreateVehicleClick" Style="{StaticResource PrimaryButton}"/>
+                                    <Button x:Name="RemoveVehicleButton" Content="删除此车配置" Click="RemoveVehicleClick" Style="{StaticResource OutlineButton}"/>
+                                    <Button Content="保存配置" Click="SaveClick"/>
+                                </WrapPanel>
+                                <TextBlock Text="输出始终按游戏识别到的车型自动切换；编辑其他车辆不会切换当前车辆的反馈。握把震动、音频和外观保持通用。" Style="{StaticResource Muted}"/>
+                            </StackPanel></Border>
+                            <StackPanel x:Name="TriggerEditor">
+                            <Border Style="{StaticResource Card}"><StackPanel>
                                 <TextBlock Text="R2 油门" Style="{StaticResource SectionTitle}"/>
                                 <TextBlock Text="牵引力控制（TC）介入时，R2 增加阻力，帮助感知加速打滑。开启下方选项后，正常加速时 R2 保持自由行程。" Style="{StaticResource Muted}" Margin="0,0,0,10"/>
                                 <CheckBox x:Name="TcOnlyCheck" Content="仅 TC 介入时增加阻力" Checked="ThrottleModeChanged" Unchecked="ThrottleModeChanged"/>
@@ -85,6 +99,7 @@
                                 <TextBlock Text="未标定时不输出参考墙；临界提示需要有效纵向接触区速度。行程映射默认线性，可按游戏死区和曲线校准。" Style="{StaticResource Muted}"/>
                                 <StackPanel x:Name="BrakeSettings"/>
                             </StackPanel></Border>
+                            </StackPanel>
                         </StackPanel>
                     </TabItem>
                     <TabItem Header="路面与震动">
@@ -94,7 +109,7 @@
                                 <TextBlock Text="根据车辆数据，让左右握把分别呈现路面颠簸和路肩振动。音圈是手柄内的触觉振动部件。" Style="{StaticResource Muted}" Margin="0,0,0,8"/>
                                 <CheckBox x:Name="AudioModeCheck" Content="使用 USB 音圈震动（推荐）" Checked="AudioOptionsChanged" Unchecked="AudioOptionsChanged"/>
                                 <TextBlock Text="手柄音频设备" Style="{StaticResource Muted}" Margin="0,12,0,4"/>
-                                <ComboBox x:Name="AudioDevicesCombo" DisplayMemberPath="Name" SelectedValuePath="Id" SelectionChanged="AudioDeviceChanged" MinHeight="32"/>
+                                <ComboBox x:Name="AudioDevicesCombo" DisplayMemberPath="Name" SelectedValuePath="Id" SelectionChanged="AudioDeviceChanged"/>
                                 <WrapPanel Margin="0,8,0,0">
                                     <Button Content="刷新音频设备" Click="RefreshAudioDevicesClick"/>
                                     <Button Content="Windows 声音设置" Click="SoundSettingsClick" Style="{StaticResource OutlineButton}"/>

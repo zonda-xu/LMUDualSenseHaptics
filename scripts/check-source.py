@@ -17,8 +17,8 @@ for path in list(root.rglob('*.xaml'))+list(root.rglob('*.csproj'))+[root/'Direc
     ET.parse(path)
     check('XML: '+str(path.relative_to(root)),True)
 main=(src/'MainWindow.xaml').read_text(encoding='utf-8')
-code=(src/'MainWindow.xaml.cs').read_text(encoding='utf-8')
-for handler in sorted(set(re.findall(r'(?:Click|Checked|Unchecked|SelectionChanged)="(\w+)"',main))):
+code='\n'.join(p.read_text(encoding='utf-8') for p in src.glob('MainWindow*.cs'))
+for handler in sorted(set(re.findall(r'\b(?:Click|Checked|Unchecked|SelectionChanged)="(\w+)"',main))):
     check('WPF event handler: '+handler, bool(re.search(r'\b'+handler+r'\s*\(',code)))
 xaml='\n'.join(p.read_text(encoding='utf-8') for p in src.rglob('*.xaml'))
 keys=set(re.findall(r'x:Key="(\w+)"',xaml))

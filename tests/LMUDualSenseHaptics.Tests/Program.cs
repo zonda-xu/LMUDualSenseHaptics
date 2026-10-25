@@ -383,6 +383,7 @@ BrakePreviewTests.Run(Check);
 Brake121Tests.Run(Check);
 Brake122Tests.Run(Check);
 Brake13Tests.Run(Check);
+VehicleTriggerTests.Run(Check);
 Console.WriteLine($"RESULT {passed} passed, {failed} failed (synthetic, sanitized recorded fields and fake HID; no hardware claims)");
 Environment.ExitCode=failed==0?0:1;
 

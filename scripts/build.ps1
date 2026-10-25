@@ -18,11 +18,15 @@ Invoke-Dotnet -LogName '01-build.txt' -Arguments @('build','LMUDualSenseHaptics.
 Invoke-Dotnet -LogName '02-tests.txt' -Arguments @('run','--project','tests/LMUDualSenseHaptics.Tests','-c','Release','--no-build')
 # Start with an empty staging folder to exclude stale assemblies and personal files.
 if (Test-Path 'artifacts/win-x64') { Remove-Item 'artifacts/win-x64' -Recurse -Force }
-Invoke-Dotnet -LogName '03-publish.txt' -Arguments @('publish','src/LMUDualSenseHaptics','-c','Release','-r','win-x64','--self-contained','true','-p:EnableWindowsTargeting=true','-m:1','-o','artifacts/win-x64')
-Copy-Item README.md,LICENSE,THIRD_PARTY_NOTICES.md 'artifacts/win-x64' -Force
+Invoke-Dotnet -LogName '03-publish.txt' -Arguments @('publish','src/LMUDualSenseHaptics','-c','Release','-r','win-x64','--self-contained','true','-p:EnableWindowsTargeting=true','-m:1','-o','artifacts/win-x64/bin')
 Copy-Item docs 'artifacts/win-x64/docs' -Recurse -Force
+Copy-Item README.md,LICENSE,THIRD_PARTY_NOTICES.md 'artifacts/win-x64/docs' -Force
+$packagedReadme = 'artifacts/win-x64/docs/README.md'
+(Get-Content $packagedReadme -Raw).Replace('(docs/', '(') | Set-Content $packagedReadme -Encoding UTF8
+& ./scripts/build-launcher.ps1
 $archive = "artifacts/LMUDualSenseHaptics-win-x64-$releaseTag.zip"
 Compress-Archive -Path 'artifacts/win-x64/*' -DestinationPath $archive -Force
+& ./scripts/test-package.ps1 -Archive $archive 2>&1 | Tee-Object 'artifacts/build-logs/05-package-test.txt'
 $checksum = (Get-FileHash $archive -Algorithm SHA256).Hash.ToLowerInvariant()
 "$checksum  $(Split-Path $archive -Leaf)" | Set-Content "$archive.sha256" -Encoding ASCII
 Write-Host "Build and regression tests passed. Package: $archive"

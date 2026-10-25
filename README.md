@@ -1,12 +1,15 @@
 # LMU DualSense Haptics
 
-为 **Le Mans Ultimate（勒芒终极版）** 提供 DualSense USB 自适应扳机和左右握把音圈反馈。当前版本：**v1.3-preview**。界面为中文。
+为 **Le Mans Ultimate（勒芒终极版）** 提供 DualSense USB 自适应扳机和左右握把音圈反馈。当前版本：**v1.3.9-preview**。界面为中文。
+
+本版从 **v1.3-preview** 回退基线开发，保留该版反馈算法，新增车辆专属扳机配置和整洁的发行目录。
 
 ## 功能
 
 - **L2 刹车**：自动反复识别车型；GT3 使用旧版 LT，其他车型使用基础阻力、有效接触区滑移预警和明显抱死脉冲。
 - **R2 油门**：默认只在牵引力控制（TC）介入时增加阻力；可启用基础阻力、空转、转速上限及升挡提示。
 - **左右握把**：根据车辆数据呈现路面纹理、颠簸、路肩、打滑、碰撞、升挡和引擎震动。
+- **每辆车独立扳机设置**：根据车型名称和类别自动切换 L2 / R2 配置，支持反复换车；没有专属配置时使用通用设置。
 - **调节与保存**：各效果独立开关和强度、路面灵敏度、左右分离、震动频率、浅色/深色外观、车型参数导入导出。
 - **连接与排障**：手柄检查、实时状态、驾驶数据记录和限额日志。
 
@@ -21,14 +24,18 @@
 
 ## 下载与开始使用
 
-1. 在仓库 **Releases** 页面下载 `LMUDualSenseHaptics-win-x64-v1.3-preview.zip`，完整解压后运行 `LMUDualSenseHaptics.exe`。自包含版本无需另外安装 .NET。
+1. 在仓库 **Releases** 页面下载 `LMUDualSenseHaptics-win-x64-v1.3.9-preview.zip`，完整解压后运行 `LMUDualSenseHaptics.exe`。自包含版本无需另外安装 .NET。
 2. 用 USB 数据线连接 DualSense。关闭 Steam Input、DSX、DS4Windows 等软件对同一手柄的震动输出。按键映射可按需继续使用；映射软件也可能占用手柄，连接异常时先退出相关软件排查。
 3. 让游戏声音继续通过耳机或音箱播放。不要将 DualSense 设为游戏声音输出设备。
 4. 在“路面与震动”中启用“使用 USB 音圈震动”，选择当前手柄音频设备；通常可使用自动选择。
 5. 离开驾驶状态，在“连接与工具”中点击“左握把震动”和“右握把震动”。各持续 1 秒，确认方向和实际震动。
 6. 启动 LMU 并进入驾驶，程序自动启用反馈。先调节路面和路肩强度，再增加引擎等效果，最后点击“保存配置”。
 
-在“自适应扳机”中选择自动切换，可在 GT3 与其他车型间反复切换。未标定时不输出持续参考墙；界面可设置刹车轴死区、满刹行程和曲线指数。详见 [v1.3-preview 刹车算法说明](docs/BRAKE_1_3_PREVIEW.md)。
+在“扳机反馈”中选择自动切换，可在 GT3 与其他车型间反复切换。未标定时不输出持续参考墙；界面可设置刹车轴死区、满刹行程和曲线指数。详见 [v1.3-preview 刹车算法说明](docs/BRAKE_1_3_PREVIEW.md)。
+
+在“扳机反馈 → 车辆扳机配置”中勾选“编辑面板跟随当前车辆”，识别车辆后点击“为此车创建配置”。调整该车的 L2 / R2 后点击“保存配置”。输出始终随当前游戏车辆切换；下拉框可编辑已保存车辆，编辑其他车型不会切换输出。完整说明见 [车辆配置与目录布局](docs/VEHICLE_TRIGGER_PROFILES.md)。
+
+解压目录中只有一个根目录文件 `LMUDualSenseHaptics.exe`；运行组件位于 `bin/`，说明和许可证位于 `docs/`。请完整保留这两个文件夹，升级时解压到新目录，避免旧版根目录 DLL 残留。个人配置和日志仍在 LocalAppData，不会写进发行目录。
 
 顶部左右握把读数是软件输出电平；L2/R2 数值表示扳机输出等级。握把震动频率用于调节触感。详细使用及故障排查见 [使用指南](docs/USER_GUIDE.md)。
 
@@ -40,13 +47,13 @@
 
 ## 从源码构建
 
-Windows 安装 **.NET 8 SDK**，在仓库根目录运行 `build.cmd`，或在 PowerShell 中运行：
+Windows 安装 **.NET 8 SDK** 和 **Visual Studio Build Tools（使用 C++ 的桌面开发，包含 x64 工具及 Windows SDK）**，在仓库根目录运行 `build.cmd`，或在 PowerShell 中运行：
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build.ps1
 ```
 
-脚本构建 Release、执行 C# 回归测试、发布自包含 Windows x64 应用，并生成 `artifacts/LMUDualSenseHaptics-win-x64-v1.3-preview.zip`。无需安装额外的运行时 NuGet 依赖。
+脚本构建 Release、执行 C# 回归测试、发布自包含 Windows x64 应用，并生成 `artifacts/LMUDualSenseHaptics-win-x64-v1.3.9-preview.zip`。用户无需安装 .NET 或 VC++ 运行时：WPF 程序自包含，启动器静态链接 C++ 运行时。打包脚本还会从含中文和空格的新目录解压启动应用，检查目录结构、Material 下拉框和正常退出。
 
 ```powershell
 # 仅运行算法与协议回归测试

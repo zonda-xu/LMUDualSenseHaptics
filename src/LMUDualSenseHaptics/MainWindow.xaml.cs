@@ -29,7 +29,7 @@ public partial class MainWindow:Window
         catch(Exception ex){Notify("配置读取失败，暂用默认值："+ex.Message);}
         ThemeManager.Apply(runtime.Profile.UiTheme);
         ThemeButton.Content=runtime.Profile.UiTheme=="Dark"?"浅色外观":"深色外观";
-        BuildSettings();timer.Tick+=(_,_)=>Refresh();timer.Start();Closing+=OnClosing;runtime.Start();
+        RefreshTriggerScopes(true);timer.Tick+=(_,_)=>Refresh();timer.Start();Closing+=OnClosing;runtime.Start();
     }
     private void Notify(string text)=>NoticeText.Text=text;
     private void ChangedNotice()=>Notify("设置已更改。点击“保存配置”后，下次启动会继续使用。");
@@ -44,19 +44,20 @@ public partial class MainWindow:Window
             AddFeature(ExtraTriggerSettings,"ThrottleBase","R2 基础阻力","关闭“仅 TC 介入时增加阻力”后，可设置持续的油门阻力。");
             AddFeature(ExtraTriggerSettings,"Wheelspin","R2 空转提示","加速时车轮空转，通过 R2 脉冲提醒；需关闭上方的 TC 专用选项。");
             AddFeature(ExtraTriggerSettings,"Redline","R2 转速上限提示","接近引擎转速上限时，通过 R2 脉冲提醒；需关闭上方的 TC 专用选项。");
+            AddFeature(ExtraTriggerSettings,"Shift","R2 升挡提示","升挡时 R2 产生脉冲；不影响握把升挡震动。需关闭 TC 专用选项。");
             AddFeature(BrakeSettings,"BrakeBase","L2 基础阻力","按下刹车时提供逐渐增强的阻力。");
-            BrakeModeChoice.SelectedIndex=(int)runtime.Profile.BrakeMode;
+            BrakeModeChoice.SelectedIndex=(int)EditingTriggers.BrakeMode;
             AddFeature(BrakeSettings,"Abs","ABS 提示","自动 GT3 使用旧版 ABS 脉冲；手动 ABS 模式使用介入阻力墙。");
             AddFeature(BrakeSettings,"Lock","临界制动预警","其他车型临界滑移输出 12 Hz 脉冲、明显抱死输出 24 Hz 脉冲，短暂保持避免闪断；GT3 保留旧版提示。");
-            var brakeResponse=runtime.Profile.DefaultParameters.BrakeResponse;
-            AddSetting("L2 起始死区",0,30,(int)(brakeResponse.TravelDeadzone*100),"填入游戏中刹车轴起始死区；软件不读取真实扳机行程。",v=>SetBrakeResponse(runtime.Profile.DefaultParameters.BrakeResponse with{TravelDeadzone=v/100.0}),"%",BrakeSettings);
-            AddSetting("L2 满刹行程",50,100,(int)(brakeResponse.TravelEnd*100),"达到游戏 100% 刹车时的扳机行程。",v=>SetBrakeResponse(runtime.Profile.DefaultParameters.BrakeResponse with{TravelEnd=v/100.0}),"%",BrakeSettings);
-            AddSetting("刹车输入曲线指数",25,400,(int)(brakeResponse.InputExponent*100),"100 为线性，200 表示平方曲线；仅用于阻力位置映射。",v=>SetBrakeResponse(runtime.Profile.DefaultParameters.BrakeResponse with{InputExponent=v/100.0})," /100",BrakeSettings);
+            var brakeResponse=EditingTriggers.BrakeResponse;
+            AddSetting("L2 起始死区",0,30,(int)(brakeResponse.TravelDeadzone*100),"填入游戏中刹车轴起始死区；软件不读取真实扳机行程。",v=>SetBrakeResponse(EditingTriggers.BrakeResponse with{TravelDeadzone=v/100.0}),"%",BrakeSettings);
+            AddSetting("L2 满刹行程",50,100,(int)(brakeResponse.TravelEnd*100),"达到游戏 100% 刹车时的扳机行程。",v=>SetBrakeResponse(EditingTriggers.BrakeResponse with{TravelEnd=v/100.0}),"%",BrakeSettings);
+            AddSetting("刹车输入曲线指数",25,400,(int)(brakeResponse.InputExponent*100),"100 为线性，200 表示平方曲线；仅用于阻力位置映射。",v=>SetBrakeResponse(EditingTriggers.BrakeResponse with{InputExponent=v/100.0})," /100",BrakeSettings);
             AddFeature(RoadSettings,"Road","路面细节与冲击","通过左右握把感知路面纹理、颠簸和较大的垂向冲击。");
             AddFeature(RoadSettings,"Kerb","路肩反馈","压过路肩时，对应一侧的握把产生明显震动。");
             AddFeature(OtherGripSettings,"GripSlip","轮胎打滑","轮胎明显打滑时，握把震动提示抓地力下降。");
             AddFeature(OtherGripSettings,"Impact","碰撞","发生碰撞时，握把产生短促冲击。");
-            AddFeature(OtherGripSettings,"Shift","升挡提示","升挡时，握把短促震动；关闭 TC 专用选项后，R2 也会产生脉冲。");
+            AddFeature(OtherGripSettings,"Shift","升挡提示","升挡时，握把短促震动；R2 升挡提示在扳机配置中单独调整。");
             AddFeature(OtherGripSettings,"Engine","引擎","震动随引擎转速变化；路面和路肩反馈优先。");
             AddSetting("路面灵敏度",25,200,runtime.Profile.RoadSensitivity,"100% 为起点；不影响 L2、R2 或引擎。",
                 v=>runtime.SetProfile(runtime.Profile with{RoadSensitivity=v}));
@@ -74,23 +75,24 @@ public partial class MainWindow:Window
             AddSetting("颠簸震动频率",20,100,audio.BumpFrequencyHz,"调节较大路面颠簸的触感。",
                 v=>SetAudio(runtime.Profile.AudioHaptics with{BumpFrequencyHz=v})," Hz",AudioSettings);
             audioEndpointSignature="";RefreshAudioChoices();
-            TcOnlyCheck.IsChecked=runtime.Profile.ThrottleMode==ThrottleFeedbackMode.TcOnly;
+            TcOnlyCheck.IsChecked=EditingTriggers.ThrottleMode==ThrottleFeedbackMode.TcOnly;
             UpdateModeControls();
         }
         finally{building=false;}
     }
-    private void SetBrakeResponse(BrakeResponse response)=>runtime.SetProfile(runtime.Profile with{DefaultParameters=runtime.Profile.DefaultParameters with{BrakeResponse=response}});
+    private void SetBrakeResponse(BrakeResponse response)=>SetTriggers(EditingTriggers with{BrakeResponse=response});
     private void BrakeModeChanged(object sender,SelectionChangedEventArgs e)
     {
         if(building||!IsInitialized||BrakeModeChoice is null||runtime.RecordingPath is not null)return;
         if(BrakeModeChoice.SelectedIndex is <0 or >2)return;
-        try{runtime.SetProfile(runtime.Profile with{BrakeMode=(BrakeFeedbackMode)BrakeModeChoice.SelectedIndex});ChangedNotice();}
+        try{SetTriggers(EditingTriggers with{BrakeMode=(BrakeFeedbackMode)BrakeModeChoice.SelectedIndex});ChangedNotice();}
         catch(Exception ex){Notify(ex.Message);}
     }
     private void AddFeature(StackPanel panel,string key,string name,string hint)
     {
-        PropertyInfo property=typeof(Profile).GetProperty(key)!;
-        var feature=(Feature)property.GetValue(runtime.Profile)!;
+        bool trigger=panel==BrakeSettings||panel==ThrottleSettings||panel==ExtraTriggerSettings;
+        PropertyInfo property=(trigger?typeof(TriggerSettings):typeof(Profile)).GetProperty(key)!;
+        var feature=(Feature)property.GetValue(trigger?EditingTriggers:runtime.Profile)!;
         var row=new Grid{Margin=new Thickness(0,12,0,12)};
         row.ColumnDefinitions.Add(new(){Width=new GridLength(1,GridUnitType.Star)});
         row.ColumnDefinitions.Add(new(){Width=new GridLength(200)});
@@ -110,14 +112,20 @@ public partial class MainWindow:Window
         Grid.SetColumn(slider,1);Grid.SetColumn(value,2);Grid.SetColumn(check,3);Grid.SetRowSpan(check,2);
         Grid.SetRow(diagnostic,1);Grid.SetColumn(diagnostic,1);Grid.SetColumnSpan(diagnostic,2);
         foreach(var element in new FrameworkElement[]{title,description,slider,value,check,diagnostic})row.Children.Add(element);
-        panel.Children.Add(row);channelLabels[key]=diagnostic;featureRows[key]=row;
+        panel.Children.Add(row);channelLabels[(trigger?"T:":"")+key]=diagnostic;featureRows[(trigger?"T:":"")+key]=row;
         void Changed()
         {
             if(building||runtime.RecordingPath is not null)return;
             try
             {
-                var profile=runtime.Profile with{};property.SetValue(profile,new Feature(check.IsChecked==true,(int)slider.Value));
-                runtime.SetProfile(profile);value.Text=((int)slider.Value).ToString();ChangedNotice();
+                var featureValue=new Feature(check.IsChecked==true,(int)slider.Value);
+                if(trigger){var settings=EditingTriggers with{};property.SetValue(settings,featureValue);SetTriggers(settings);}
+                else
+                {
+                    var profile=runtime.Profile with{TriggerDefaults=TriggerProfiles.Common(runtime.Profile)};
+                    property.SetValue(profile,featureValue);runtime.SetProfile(profile);
+                }
+                value.Text=((int)slider.Value).ToString();ChangedNotice();
             }
             catch(Exception ex){Notify(ex.Message);}
         }
@@ -180,9 +188,9 @@ public partial class MainWindow:Window
     }
     private void UpdateModeControls()
     {
-        bool only=runtime.Profile.ThrottleMode==ThrottleFeedbackMode.TcOnly;
-        foreach(var key in new[]{"ThrottleBase","Wheelspin","Redline"})
-            if(featureRows.TryGetValue(key,out var row)){row.IsEnabled=!only;row.Opacity=only?.52:1;}
+        bool only=EditingTriggers.ThrottleMode==ThrottleFeedbackMode.TcOnly;
+        foreach(var key in new[]{"ThrottleBase","Wheelspin","Redline","Shift"})
+            if(featureRows.TryGetValue("T:"+key,out var row)){row.IsEnabled=!only;row.Opacity=only?.52:1;}
         LegacyHint.Text=only?"当前 R2 仅在牵引力控制介入时增加阻力。关闭上方选项，可启用以下效果及升挡脉冲。":
             "当前可使用基础阻力、空转、转速上限及升挡提示；多个事件同时发生时，优先响应升挡和 TC。";
     }
@@ -191,7 +199,7 @@ public partial class MainWindow:Window
         if(building||!IsInitialized||runtime.RecordingPath is not null)return;
         try
         {
-            runtime.SetProfile(runtime.Profile with{ThrottleMode=TcOnlyCheck.IsChecked==true?ThrottleFeedbackMode.TcOnly:ThrottleFeedbackMode.Legacy});
+            SetTriggers(EditingTriggers with{ThrottleMode=TcOnlyCheck.IsChecked==true?ThrottleFeedbackMode.TcOnly:ThrottleFeedbackMode.Legacy});
             UpdateModeControls();ChangedNotice();
         }
         catch(Exception ex){Notify(ex.Message);}
@@ -211,6 +219,9 @@ public partial class MainWindow:Window
     }
     private void Refresh()
     {
+        RefreshTriggerScopes();
+        var active=TriggerProfiles.Find(runtime.Profile,runtime.Current.Frame);
+        ActiveTriggerProfileText.Text="当前输出配置："+(active is null?"通用设置":active.VehicleModel+" · "+active.VehicleClass);
         bool recording=runtime.RecordingPath is not null;
         TriggerSettingsRoot.IsEnabled=VibrationSettingsRoot.IsEnabled=!recording;
         ThemeButton.IsEnabled=!recording;RecordButton.Content=recording?"停止记录驾驶数据":"开始记录驾驶数据";
@@ -247,9 +258,11 @@ public partial class MainWindow:Window
         }
         foreach(var pair in channelLabels)
         {
-            var feature=(Feature)typeof(Profile).GetProperty(pair.Key)!.GetValue(runtime.Profile)!;
-            double level=(double)typeof(ChannelLevels).GetProperty(pair.Key)!.GetValue(s.Channels)!;
-            bool bypass=runtime.Profile.ThrottleMode==ThrottleFeedbackMode.TcOnly&&(pair.Key is "ThrottleBase" or "Wheelspin" or "Redline");
+            bool trigger=pair.Key.StartsWith("T:",StringComparison.Ordinal);string key=trigger?pair.Key[2..]:pair.Key;
+            var outputProfile=trigger?TriggerProfiles.Resolve(runtime.Profile,f):runtime.Profile;
+            var feature=(Feature)typeof(Profile).GetProperty(key)!.GetValue(outputProfile)!;
+            double level=(double)typeof(ChannelLevels).GetProperty(key)!.GetValue(s.Channels)!;
+            bool bypass=trigger&&outputProfile.ThrottleMode==ThrottleFeedbackMode.TcOnly&&(key is "ThrottleBase" or "Wheelspin" or "Redline" or "Shift");
             pair.Value.Text=bypass?"此模式不输出":feature.Gain==0?"已关闭":!s.AdvancedFeedbackEnabled?"等待驾驶":
                 level>.001?$"效果 {level*100:F0}%":"待触发";
         }
@@ -273,9 +286,9 @@ public partial class MainWindow:Window
     private void ResetClick(object sender,RoutedEventArgs e)
     {
         if(runtime.RecordingPath is not null){Notify("请先停止录制，再恢复参数。");return;}
-        if(MessageBox.Show(this,"恢复全部反馈默认值？当前未保存的强度修改会丢失；已导入的车型预设会保留。","恢复默认值",MessageBoxButton.OKCancel,MessageBoxImage.Question)!=MessageBoxResult.OK)return;
+        if(MessageBox.Show(this,"恢复全部反馈默认值？当前未保存的强度修改会丢失；已导入的车型预设会保留，车辆专属扳机配置会删除。","恢复默认值",MessageBoxButton.OKCancel,MessageBoxImage.Question)!=MessageBoxResult.OK)return;
         runtime.SetProfile(new(){VehiclePresets=runtime.Profile.VehiclePresets,RightGain=runtime.Profile.RightGain,UiTheme=runtime.Profile.UiTheme});
-        BuildSettings();ChangedNotice();
+        RefreshTriggerScopes(true);ChangedNotice();
     }
     private async void RecordClick(object sender,RoutedEventArgs e)
     {
