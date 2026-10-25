@@ -15,6 +15,7 @@ public sealed class FeedbackLoop
     public GripLayers Layers {get;private set;}
     public string ParameterSource {get;private set;}="等待驾驶";
     public ChannelLevels Channels {get;private set;}
+    public bool LeftReferenceApplied => triggers.LeftReferenceApplied;
     public string LeftTriggerSource {get;private set;}="OFF";
     public string RightTriggerSource {get;private set;}="OFF";
     public FeedbackFrame Tick(TelemetryFrame? f,double now,Profile p)

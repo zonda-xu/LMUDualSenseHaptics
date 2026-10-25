@@ -1,0 +1,10 @@
+{
+  "SignalEngine": {
+    "source": "src/LMUDualSenseHaptics/Physics/SignalEngine.cs",
+    "sha256": "3f4ff805e2bbad4a9800325c1d340ea77abe7c703fafff422dde6386c78739b3"
+  },
+  "TriggerEngine": {
+    "source": "src/LMUDualSenseHaptics/Haptics/TriggerEngine.cs",
+    "sha256": "4ae4af54aece319882e823fba05baa87ce1e0b940d6bc696c4d18dbc17157118"
+  }
+}

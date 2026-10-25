@@ -21,27 +21,27 @@ internal static class Brake122Tests
         {
             var loop=new FeedbackLoop();var p=new Profile{BrakeBase=new(true,5),Lock=new(true,35)};
             for(int n=0;n<100;n++)
-            {var f=F(n,0,n%2==0?0:.6f);var o=loop.Tick(f,f.CapturedAtSec,p);Need(o.LeftTrigger.Mode==5&&loop.Signals.Braking.Budget.Confidence==0);}
+            {var f=F(n,0,n%2==0?0:.6f);var o=loop.Tick(f,f.CapturedAtSec,p);Need(o.LeftTrigger.Mode==0x21&&Peak(o.LeftTrigger)==1&&loop.LeftTriggerSource=="BrakeBase"&&loop.Signals.Braking.Budget.Confidence==0);}
         });
         check("1.2.2 measured small slip warns without radius learning",()=>
         {
             var loop=new FeedbackLoop();var p=new Profile{BrakeBase=new(true,5),Lock=new(true,35)};
             var f=F(0,.09f);var o=loop.Tick(f,0,p);
             Need(loop.Signals.Wheels.All(w=>w.Kappa is null)&&loop.Signals.Braking.ValidSlipWheels==4);
-            Need(loop.LeftTriggerSource=="BrakeLimit"&&o.LeftTrigger.Mode==0x26&&o.LeftTrigger.P8==12&&Peak(o.LeftTrigger)>0);
+            Need(loop.LeftTriggerSource=="BrakeLimit"&&o.LeftTrigger.Mode==0x21&&Peak(o.LeftTrigger)>0);
         });
         check("1.2.2 measured warning threshold is independent of strength",()=>
         {
             foreach(int gain in new[]{1,5,15,35,100})
             {var l=new FeedbackLoop();var o=l.Tick(F(0,.0601f),0,new(){BrakeBase=new(false,50),Lock=new(true,gain)});Need(l.LeftTriggerSource=="BrakeLimit"&&Peak(o.LeftTrigger)>0);}
         });
-        check("1.2.2 sustained lock at startup produces a dedicated 24 Hz pulse",()=>
+        check("1.2.2 startup lock produces a short 24 Hz pulse then sustained resistance",()=>
         {
             var loop=new FeedbackLoop();var p=new Profile{BrakeBase=new(true,5),Lock=new(true,35)};
             for(int n=0;n<50;n++)
             {
-                var o=loop.Tick(F(n,1),n*.01,p);Need(o.LeftTrigger.Mode==0x26&&o.LeftTrigger.P8==24&&loop.LeftTriggerSource=="LockPulse");
-                byte[] report=new byte[48];DualSenseReportBuilder.Build(o,report);Need(report[22]==0x26&&report[31]==24);
+                var o=loop.Tick(F(n,1),n*.01,p);Need(n<12?o.LeftTrigger.Mode==0x26&&o.LeftTrigger.P8==24&&loop.LeftTriggerSource=="LockPulse":o.LeftTrigger.Mode==0x21&&loop.LeftTriggerSource=="BrakeLimit");
+                byte[] report=new byte[48];DualSenseReportBuilder.Build(o,report);Need(report[22]==o.LeftTrigger.Mode&&report[31]==o.LeftTrigger.P8);
             }
         });
         check("1.2.2 warning gain controls amplitude without disabling the detection threshold",()=>
@@ -90,7 +90,7 @@ internal static class Brake122Tests
                 var o=loop.Tick(f,f.CapturedAtSec,p);
                 warned|=loop.LeftTriggerSource=="BrakeLimit"&&slip<.16;
                 locked|=loop.LeftTriggerSource=="LockPulse";
-                if(slip>=.25)Need(o.LeftTrigger.Mode==0x26);
+                if(slip>=.25)Need(o.LeftTrigger.Mode is 0x26 or 0x21 && loop.LeftTriggerSource is "LockPulse" or "BrakeLimit");
                 for(int j=0;j<3;j++){var tick=loop.Tick(f,f.CapturedAtSec+j*.004,p);byte[] report=new byte[48];DualSenseReportBuilder.Build(tick,report);Need(report[22]==tick.LeftTrigger.Mode);}
             }
             Need(warned&&locked&&loop.Signals.Wheels.All(w=>w.Kappa is null));

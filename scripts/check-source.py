@@ -112,6 +112,13 @@ check('Recorder reserves a valid final marker inside byte limit','written+bytes.
 check('Road uses shared contact rule','WheelContact.IsGrounded(w, c.ContactMinLoadN)' in road)
 check('Learning, kappa and grip slip use shared contact rule',signal.count('WheelContact.IsGrounded(q,c.ContactMinLoad)')==3)
 check('Production tests invoke v0.5.2 additions','Revision052Tests.Run(Check);' in (root/'tests/LMUDualSenseHaptics.Tests/Program.cs').read_text(encoding='utf-8'))
+# Protect the v1.0.1 source oracle independently of current production code.
+for name, info in json.loads((root/'tests/baselines/v1.0.1-brake-oracle.json').read_text()).items():
+    oracle=(root/f'tests/LMUDualSenseHaptics.Tests/Legacy101{name}.cs').read_text().split('\n',1)[1]
+    part='Physics' if name=='SignalEngine' else 'Haptics'
+    oracle=oracle.replace('namespace LMUDualSenseHaptics.Legacy101;',f'namespace LMUDualSenseHaptics.{part};')
+    if name=='SignalEngine': oracle=oracle.removeprefix('using LMUDualSenseHaptics.Physics;\n')
+    check('v1.0.1 source oracle unchanged: '+name,hashlib.sha256(oracle.encode()).hexdigest()==info['sha256'])
 # Lexical balance is not a C# type checker, compiler or WPF runtime.
 try:
     from pygments import lex

@@ -44,11 +44,14 @@ public partial class MainWindow:Window
             AddFeature(ExtraTriggerSettings,"ThrottleBase","R2 基础阻力","关闭“仅 TC 介入时增加阻力”后，可设置持续的油门阻力。");
             AddFeature(ExtraTriggerSettings,"Wheelspin","R2 空转提示","加速时车轮空转，通过 R2 脉冲提醒；需关闭上方的 TC 专用选项。");
             AddFeature(ExtraTriggerSettings,"Redline","R2 转速上限提示","接近引擎转速上限时，通过 R2 脉冲提醒；需关闭上方的 TC 专用选项。");
-            AddFeature(BrakeSettings,"BrakeBase","L2 基础阻力","按下刹车时提供逐渐增强的阻力。");
+            AddFeature(BrakeSettings,"BrakeBase","L2 基础阻力","独立于轮胎风险的踏板曲线。非零强度至少输出 1 级；0 或关闭完全关闭。");
             BrakeModeChoice.SelectedIndex=(int)runtime.Profile.BrakeMode;
-            AddFeature(BrakeSettings,"Abs","ABS 提示","自动 GT3 使用旧版 ABS 脉冲；手动 ABS 模式使用介入阻力墙。");
-            AddFeature(BrakeSettings,"Lock","临界制动预警","其他车型临界滑移输出 12 Hz 脉冲、明显抱死输出 24 Hz 脉冲，短暂保持避免闪断；GT3 保留旧版提示。");
+            AddFeature(BrakeSettings,"Abs","ABS 提示","自动 GT3 使用 v1.0.1 ABS 脉冲；手动 ABS 模式使用介入阻力墙。");
+            AddFeature(BrakeSettings,"Lock","临界制动预警","无 ABS 按滑移渐进增阻；严重抱死短促脉冲后恢复阻力。GT3 使用 v1.0.1 逻辑。");
             var brakeResponse=runtime.Profile.DefaultParameters.BrakeResponse;
+            AddSetting("无 ABS 起段阻力",1,4,(int)brakeResponse.PedalStartLevel,"100% 基础强度时的固件等级；不代表抓地力。",v=>SetBrakeResponse(runtime.Profile.DefaultParameters.BrakeResponse with{PedalStartLevel=v}),"级",BrakeSettings);
+            AddSetting("无 ABS 末段阻力",4,8,(int)brakeResponse.PedalEndLevel,"与基础强度共同决定完整踏板曲线。",v=>SetBrakeResponse(runtime.Profile.DefaultParameters.BrakeResponse with{PedalEndLevel=v}),"级",BrakeSettings);
+            AddSetting("无 ABS 阻力曲线指数",50,300,(int)(brakeResponse.PedalExponent*100),"较大数值让前段更平缓，后段增长更集中。",v=>SetBrakeResponse(runtime.Profile.DefaultParameters.BrakeResponse with{PedalExponent=v/100.0})," /100",BrakeSettings);
             AddSetting("L2 起始死区",0,30,(int)(brakeResponse.TravelDeadzone*100),"填入游戏中刹车轴起始死区；软件不读取真实扳机行程。",v=>SetBrakeResponse(runtime.Profile.DefaultParameters.BrakeResponse with{TravelDeadzone=v/100.0}),"%",BrakeSettings);
             AddSetting("L2 满刹行程",50,100,(int)(brakeResponse.TravelEnd*100),"达到游戏 100% 刹车时的扳机行程。",v=>SetBrakeResponse(runtime.Profile.DefaultParameters.BrakeResponse with{TravelEnd=v/100.0}),"%",BrakeSettings);
             AddSetting("刹车输入曲线指数",25,400,(int)(brakeResponse.InputExponent*100),"100 为线性，200 表示平方曲线；仅用于阻力位置映射。",v=>SetBrakeResponse(runtime.Profile.DefaultParameters.BrakeResponse with{InputExponent=v/100.0})," /100",BrakeSettings);

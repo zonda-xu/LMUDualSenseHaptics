@@ -119,7 +119,7 @@ public sealed class SignalEngine
         Abs=Env(Abs,ar*bg,dt,.032,.105);Tc=Env(Tc,tr*tg,dt,.060,.135);
         static double Cue(double ratio,double start,double full)=>ratio>=start?.25+.75*Smooth(start,full,ratio):0;
         Braking.Update(f,previous,p,c);
-        LegacyLock=Env(LegacyLock,(1-ar)*(f.Brake01>c.InputThreshold?1:0)*Wheels.Max(q=>q.Kappa is double k?Cue(Math.Max(0,-k),.30,.60):0)*sg,dt,.050,.135);
+        LegacyLock=Env(LegacyLock,(1-ar)*(f.Brake01>c.InputThreshold?1:0)*Wheels.Max(q=>q.Kappa is double k?Cue(Math.Max(0,-k),c.LockRatio,c.LockFullRatio):0)*sg,dt,.050,.135);
         Lock=BrakeRouting.Legacy(f,p)?LegacyLock:Braking.LockSeverity;
         Spin=Env(Spin,(1-tr)*(f.Throttle01>c.InputThreshold?1:0)*Wheels.Max(q=>q.Kappa is double k?Cue(Math.Max(0,k),c.SpinRatio,c.SpinFullRatio):0)*sg,dt,.085,.175);
         if(previous.Gear>0&&f.Gear>previous.Gear&&f.SpeedMps>8/3.6&&f.Throttle01>.18)ShiftStart=f.CapturedAtSec;

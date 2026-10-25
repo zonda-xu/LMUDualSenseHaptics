@@ -20,6 +20,9 @@ public sealed class BrakeBudget
     public double LoadFactor { get; private set; } = 1;
     public double DemandRate { get; private set; }
     public int Stops { get; private set; }
+    public int AcceptedStops { get; private set; }
+    public bool SampleAccepted { get; private set; }
+    public double? ObservedOnsetBrake { get; private set; }
     public int ContextCount => samples.Count;
     public string Context { get; private set; } = "";
     public string Evidence { get; private set; } = "初始参考，未标定";
@@ -29,6 +32,7 @@ public sealed class BrakeBudget
     public void Reset()
     {
         samples.Clear(); Array.Clear(referenceLoad); Array.Clear(minLoad); Array.Clear(maxLoad); Array.Clear(loadFrames);
+        AcceptedStops=0;SampleAccepted=false;ObservedOnsetBrake=null;
         sampledStop=false;previousSlip=0;lastTime=double.NaN;intervals=0;intervalSum=intervalMax=0;intervalMin=double.PositiveInfinity;
         Prompt=EstimatedLimit=Confidence=DemandRate=0;Stops=0;LoadFactor=1;Context="";Evidence="初始参考，未标定";
     }
@@ -43,7 +47,7 @@ public sealed class BrakeBudget
         double dt = previous is null ? 0 : f.SourceTimeSec-previous.SourceTimeSec;
         bool pair = dt is >0 and <=.1;
         if(f.SourceTimeSec==lastTime)return;
-        lastTime=f.SourceTimeSec;
+        lastTime=f.SourceTimeSec;SampleAccepted=false;ObservedOnsetBrake=null;
         if(pair){intervals++;intervalSum+=dt;intervalMin=Math.Min(intervalMin,dt);intervalMax=Math.Max(intervalMax,dt);}
         bool driving=f.Driving&&!f.Paused&&f.SpeedMps>=5&&f.Gear>=0;
         bool braking=f.Brake01>.02;
@@ -91,6 +95,7 @@ public sealed class BrakeBudget
             double observed=Math.Clamp(Math.Min(f.Brake01,Math.Max(.15,previous!.Brake01))/stateFactor,.25,1);
             sample.Mean=sample.Stops==0?observed:sample.Mean+.25*(observed-sample.Mean);
             sample.Stops=Math.Min(20,sample.Stops+1);sampledStop=true;
+            AcceptedStops++;SampleAccepted=true;ObservedOnsetBrake=Math.Min(f.Brake01,Math.Max(.15,previous!.Brake01));
         }
         previousSlip=braking?slip:0;
         Stops=sample?.Stops??0;

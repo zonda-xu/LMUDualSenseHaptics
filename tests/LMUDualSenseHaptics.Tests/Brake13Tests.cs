@@ -15,6 +15,8 @@ internal static class Brake13Tests
         new(n,t,0,true,true,false,"synthetic-13","Hyper",speed,0,0,-speed,0,0,0,brake,0,0,6,6000,8000,false,false,false,true,
             Enumerable.Range(0,4).Select(_=>new WheelFrame(-speed/.35f*(1-slip),0,3000,3000,0,.01f,-speed,0,null,true,LongitudinalPatchMps:-speed*slip)).ToImmutableArray(),t);
     private static int Amplitude(TriggerEffect e)=>1+(e.P2&7);
+    private static void Control(FeedbackFrame o)
+    {Need(o.LeftTrigger.Mode==0x21&&Amplitude(o.LeftTrigger)>1,"progressive resistance above one-level base");}
     private static void Pulse(FeedbackFrame o,int hz)
     {
         Need(o.LeftTrigger.Mode==0x26&&o.LeftTrigger.P8==hz,$"expected {hz} Hz, got {o.LeftTrigger.Mode}/{o.LeftTrigger.P8}");
@@ -33,13 +35,13 @@ internal static class Brake13Tests
                 var f=F(1,dt,1,1,speed);f=f with{Wheels=f.Wheels.Select(w=>w with{OmegaRadPerSec=residualOmega,LongitudinalPatchMps=-speed+.04f}).ToImmutableArray()};
                 var o=l.Tick(f,dt,P);Pulse(o,24);
                 Need(l.Signals.Braking.ValidSlipWheels==4&&l.Signals.Wheels.All(w=>w.Kappa is null));
-                for(double age=0;age<dt;age+=.004)Need(l.Tick(f,dt+age,P).LeftTrigger==o.LeftTrigger,"packet spacing must not fade a pulse");
+                for(double age=0;age<dt;age+=.004)Pulse(l.Tick(f,dt+age,P),24);
             }
         });
         check("1.3 a steady full brake without slip is not a fabricated lock",()=>
         {
             var l=new FeedbackLoop();
-            for(int n=0;n<100;n++){var o=l.Tick(F(n,n*.01,0,n==0?0:1),n*.01,P);Need(o.LeftTrigger.Mode==5&&!l.Signals.Braking.WarningActive&&!l.Signals.Braking.LockActive);}
+            for(int n=0;n<100;n++){var o=l.Tick(F(n,n*.01,0,n==0?0:1),n*.01,P);Need(o.LeftTrigger.Mode==0x21&&Amplitude(o.LeftTrigger)==1&&!l.Signals.Braking.WarningActive&&!l.Signals.Braking.LockActive);}
         });
         check("1.3 near-lock velocity validation is symmetric and bounded",()=>
         {
@@ -51,54 +53,53 @@ internal static class Brake13Tests
         });
         check("1.3 a brief warning has a bounded 160 ms tail",()=>
         {
-            var l=new FeedbackLoop();Pulse(l.Tick(F(0,0,.08f),0,P),12);
-            for(int n=1;n<16;n++)Pulse(l.Tick(F(n,n*.01),n*.01,P),12);
-            Need(l.Tick(F(17,.17),.17,P).LeftTrigger.Mode==5);
+            var l=new FeedbackLoop();Control(l.Tick(F(0,0,.08f),0,P));
+            for(int n=1;n<16;n++)Control(l.Tick(F(n,n*.01),n*.01,P));
+            Need(Amplitude(l.Tick(F(17,.17),.17,P).LeftTrigger)==1);
         });
         check("1.3 warning hysteresis sustains the cue through threshold chatter",()=>
         {
-            var l=new FeedbackLoop();Pulse(l.Tick(F(0,0,.07f),0,P),12);
-            for(int n=1;n<100;n++)Pulse(l.Tick(F(n,n*.01,n%2==0?.055f:.045f),n*.01,P),12);
+            var l=new FeedbackLoop();Control(l.Tick(F(0,0,.07f),0,P));
+            for(int n=1;n<100;n++)Control(l.Tick(F(n,n*.01,n%2==0?.055f:.045f),n*.01,P));
             for(int n=100;n<130;n++)l.Tick(F(n,n*.01),n*.01,P);
             Need(!l.Signals.Braking.WarningActive);
         });
-        check("1.3 warning and lock have distinct rates with stronger moderate-gain output",()=>
+        check("1.3 warning uses resistance and lock uses a short event",()=>
         {
-            var l=new FeedbackLoop();var warning=l.Tick(F(0,0,.0601f),0,P);Pulse(warning,12);
-            Need(Amplitude(warning.LeftTrigger)>=3);
+            var l=new FeedbackLoop();var warning=l.Tick(F(0,0,.0601f),0,P);Control(warning);
             var locked=l.Tick(F(1,.01,1,1),.01,P);Pulse(locked,24);
-            Need(Amplitude(locked.LeftTrigger)>=5&&Amplitude(locked.LeftTrigger)>Amplitude(warning.LeftTrigger));
+            Pulse(l.Tick(F(1,.01,1,1),.03,P),24);
         });
         check("1.3 severe cue holds briefly then returns to the warning stage",()=>
         {
             var l=new FeedbackLoop();Pulse(l.Tick(F(0,0,1),0,P),24);
-            for(int n=1;n<16;n++)Pulse(l.Tick(F(n,n*.01,.1f),n*.01,P),24);
-            Pulse(l.Tick(F(17,.17,.1f),.17,P),12);
+            for(int n=1;n<12;n++)Pulse(l.Tick(F(n,n*.01,.1f),n*.01,P),24);
+            Control(l.Tick(F(17,.17,.1f),.17,P));
         });
         check("1.3 cancelling conditions override cue hold immediately",()=>
         {
             var f=F(1,.01,1);
             foreach(var stop in new[]{f with{Brake01=0},f with{Brake01=.01f},f with{SpeedMps=2},f with{Gear=-1},f with{Paused=true},f with{Driving=false},f with{Connected=false},f with{Wheels=f.Wheels.Select(w=>w with{TireLoadN=0,TireVerticalDeflectionM=0}).ToImmutableArray()},f with{Wheels=f.Wheels.Select(w=>w with{LongitudinalPatchMps=null}).ToImmutableArray()}})
-            {var l=new FeedbackLoop();Pulse(l.Tick(F(0,0,1),0,P),24);Need(l.Tick(stop,.01,P).LeftTrigger.Mode==5&&!l.Signals.Braking.LockActive);}
+            {var l=new FeedbackLoop();Pulse(l.Tick(F(0,0,1),0,P),24);Need(l.Tick(stop,.01,P).LeftTrigger.Mode!=0x26&&!l.Signals.Braking.LockActive);}
         });
         check("1.3 one invalid locked wheel cannot latch using other rolling wheels",()=>
         {
             var l=new FeedbackLoop();var f=F(0,0);f=f with{Wheels=f.Wheels.Select((w,i)=>i==0?w with{OmegaRadPerSec=0,LongitudinalPatchMps=-90}:w).ToImmutableArray()};
             Pulse(l.Tick(f,0,P),24);
             var next=F(1,.01);next=next with{Wheels=next.Wheels.Select((w,i)=>i==0?w with{LongitudinalPatchMps=null}:w).ToImmutableArray()};
-            Need(l.Tick(next,.01,P).LeftTrigger.Mode==5&&!l.Signals.Braking.LockActive&&l.Signals.Braking.ValidSlipWheels==3);
+            Need(l.Tick(next,.01,P).LeftTrigger.Mode==0x21&&!l.Signals.Braking.LockActive&&l.Signals.Braking.ValidSlipWheels==3);
         });
         check("1.3 timeout uses source age and clears held state",()=>
         {
-            var l=new FeedbackLoop();var f=F(0,0,1) with{SourceAgeSec=.2};Pulse(l.Tick(f,0,P),24);
+            var l=new FeedbackLoop();var f=F(0,0,1) with{SourceAgeSec=.2};Need(l.Tick(f,0,P).LeftTrigger.Mode==0x21);
             Need(l.Tick(f,.051,P)==FeedbackFrame.Off&&!l.Signals.Braking.LockActive);
-            Need(l.Tick(F(1,.06),.06,P).LeftTrigger.Mode==5);
+            Need(l.Tick(F(1,.06),.06,P).LeftTrigger.Mode==0x21);
         });
         check("1.3 duplicate packets do not extend a cue deadline",()=>
         {
-            var l=new FeedbackLoop();var f=F(0,0,.08f);Pulse(l.Tick(f,0,P),12);
-            for(int n=1;n<40;n++)Pulse(l.Tick(f,n*.004,P),12);
-            Need(l.Tick(F(1,.17),.17,P).LeftTrigger.Mode==5);
+            var l=new FeedbackLoop();var f=F(0,0,.08f);Control(l.Tick(f,0,P));
+            for(int n=1;n<40;n++)Control(l.Tick(f,n*.004,P));
+            Need(Amplitude(l.Tick(F(1,.17),.17,P).LeftTrigger)==1);
         });
         check("1.3 repeated GT3 and Hyper switches clear pulse state in both directions",()=>
         {
@@ -117,8 +118,8 @@ internal static class Brake13Tests
             {
                 int last=0;
                 foreach(int gain in new[]{0,1,5,15,35,70,100})
-                {var l=new FeedbackLoop();var o=l.Tick(F(0,0,slip),0,P with{Lock=new(true,gain)});if(gain==0)Need(o.LeftTrigger.Mode==5);else{Need(Amplitude(o.LeftTrigger)>=last);last=Amplitude(o.LeftTrigger);}}
-                Need(new FeedbackLoop().Tick(F(0,0,slip),0,P with{Lock=new(false,35)}).LeftTrigger.Mode==5);
+                {var l=new FeedbackLoop();var o=l.Tick(F(0,0,slip),0,P with{Lock=new(true,gain)});if(gain==0)Need(o.LeftTrigger.Mode==0x21&&Amplitude(o.LeftTrigger)==1);else{Need(Amplitude(o.LeftTrigger)>=last);last=Amplitude(o.LeftTrigger);}}
+                Need(new FeedbackLoop().Tick(F(0,0,slip),0,P with{Lock=new(false,35)}).LeftTrigger.Mode==0x21);
             }
         });
         check("1.3 cue timing setting validates and survives profile serialization",()=>

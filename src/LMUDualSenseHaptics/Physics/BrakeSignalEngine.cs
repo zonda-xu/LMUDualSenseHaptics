@@ -13,6 +13,9 @@ public sealed class BrakeSignalEngine
     private readonly double[] warningUntil = new double[4], lockUntil = new double[4];
     public bool WarningActive { get; private set; }
     public bool LockActive { get; private set; }
+    private bool pulseArmed=true;
+    private double recoveredSince=double.NaN;
+    public double LockPulseStarted { get; private set; } = double.NegativeInfinity;
     public int ValidSlipWheels { get; private set; }
     private BrakeFeedbackMode? previousMode;
     public BrakeFeedbackMode Mode { get; private set; }
@@ -36,6 +39,7 @@ public sealed class BrakeSignalEngine
         Array.Clear(lastSlip); Array.Clear(rate); Array.Clear(valid); ValidSlipWheels=0;
         Array.Fill(warningUntil,double.NegativeInfinity); Array.Fill(lockUntil,double.NegativeInfinity);
         WarningActive=LockActive=false;
+        pulseArmed=true;recoveredSince=double.NaN;LockPulseStarted=double.NegativeInfinity;
         Risk = LockSeverity = FrontRisk = RearRisk = MaxSlip = MaxSlipRate = AbsWall = 0;
         AbsOnsetBrake = null; previousMode = null;
         Mode = BrakeFeedbackMode.Auto; Evidence = "等待驾驶";
@@ -93,6 +97,23 @@ public sealed class BrakeSignalEngine
             lastSlip[i]=slip;valid[i]=usable;
         }
         if(Mode==BrakeFeedbackMode.NoAbs)Budget.Update(f,previous,MaxSlip,c,parameters.ContactMinLoad);
+        // One short event per lock episode. Sustained slip is communicated by
+        // resistance after the burst; it never retriggers a periodic alarm.
+        if(!braking||Mode!=BrakeFeedbackMode.NoAbs||!LockActive)
+            LockPulseStarted=double.NegativeInfinity;
+        if(!braking||Mode!=BrakeFeedbackMode.NoAbs||ValidSlipWheels==0)
+        {pulseArmed=true;recoveredSince=double.NaN;}
+        else if(MaxSlip<c.CriticalSlip)
+        {
+            if(double.IsNaN(recoveredSince))recoveredSince=f.SourceTimeSec;
+            if(f.SourceTimeSec-recoveredSince>=c.CueHoldSeconds)pulseArmed=true;
+        }
+        else
+        {
+            recoveredSince=double.NaN;
+            if(MaxSlip>=c.LockSlip&&pulseArmed)
+            {LockPulseStarted=f.SourceTimeSec;pulseArmed=false;}
+        }
         bool abs = Mode == BrakeFeedbackMode.Abs && f.AbsIntervening && braking;
         if (!braking || Mode==BrakeFeedbackMode.NoAbs && ValidSlipWheels==0)
         {
@@ -115,6 +136,6 @@ public sealed class BrakeSignalEngine
         }
         Evidence = Mode == BrakeFeedbackMode.Auto ? "ABS 状态未知，请选择刹车模式" :
             Mode == BrakeFeedbackMode.Abs ? "GT3 旧版 / 手动 ABS" :
-            ($"接触区滑移有效 {ValidSlipWheels}/4 · 提示 {(LockActive?"抱死脉冲":WarningActive?"临界脉冲":"无")}")+" · "+Budget.Evidence;
+            ($"接触区滑移有效 {ValidSlipWheels}/4 · 状态 {(LockActive?"严重滑移":WarningActive?"临界增阻":"正常踏板")}")+" · "+Budget.Evidence;
     }
 }

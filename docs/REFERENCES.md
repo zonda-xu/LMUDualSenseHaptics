@@ -36,3 +36,7 @@
 ## v1.3-preview 制动提示参考（2026-10-25）
 
 [F1 25 UDP 官方规范、HorizonHaptics 与 Forza-Horizon-DualSense-Python 的核对结果](BRAKE_1_3_PREVIEW.md#参考方案与边界)：参考逐轮滑移观测、硬件振动、效果优先级及滞回概念。没有复制第三方实现，也没有把 F1 25 UDP 规范当作其内部触觉算法。
+
+## v1.3.5-preview（2026-10-25）
+
+Codemasters / Steven Embling：[F1 22 DualSense 官方说明](https://blog.playstation.com/?p=366243)，描述滑移关联阻力与静态踏板阻力。仅参考行为，未复制未公开算法。本版实现与评估边界见 [BRAKE_1_3_5_PREVIEW.md](BRAKE_1_3_5_PREVIEW.md)。

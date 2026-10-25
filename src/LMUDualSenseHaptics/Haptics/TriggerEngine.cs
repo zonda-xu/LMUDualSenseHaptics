@@ -8,16 +8,17 @@ public sealed class TriggerEngine
     private int leftSelected=-1,rightSelected=-1;private double leftUntil,rightUntil;
     private string brakeIdentity="";
     private static readonly byte[] Brake=[3,4,4,5,5,6,6,7,7,8];
+    public bool LeftReferenceApplied {get;private set;}
     public string LeftSource {get;private set;}="BrakeBase";
     public string RightSource=>rightSelected switch{0=>"Shift",1=>"Tc",2=>"Wheelspin",3=>"Redline",_=>"ThrottleBase"};
     private static readonly byte[] Throttle=[2,2,2,3,3,3,4,4,5,5];
-    public void Reset(){leftSelected=rightSelected=-1;leftUntil=rightUntil=0;brakeIdentity="";LeftSource="BrakeBase";}
+    public void Reset(){leftSelected=rightSelected=-1;leftUntil=rightUntil=0;brakeIdentity="";LeftSource="BrakeBase";LeftReferenceApplied=false;}
     public (TriggerEffect Left,TriggerEffect Right) Render(SignalEngine e,TelemetryFrame f,double now,Profile p)
     {
         double A(double x,double tau)=>e.At(x,now,f,tau);
         string identity=$"{f.CarId}|{f.VehicleModel}|{f.VehicleClass}|{p.BrakeMode}";
         if(identity!=brakeIdentity){leftSelected=-1;leftUntil=0;brakeIdentity=identity;}
-        TriggerEffect left;
+        TriggerEffect left;LeftReferenceApplied=false;
         if(BrakeRouting.Legacy(f,p))
         {
             left=Map(Brake,p.BrakeBase.Gain,[A(e.Abs,.105)*p.Abs.Gain,A(e.LegacyLock,.135)*p.Lock.Gain],
@@ -26,7 +27,7 @@ public sealed class TriggerEngine
         }
         else
         {
-            var brake=BrakeTrigger.Render(e.Braking,f,now,p);left=brake.Effect;LeftSource=brake.Source;
+            var brake=BrakeTrigger.Render(e.Braking,f,now,p);left=brake.Effect;LeftSource=brake.Source;LeftReferenceApplied=brake.ReferenceApplied;
         }
         if(p.ThrottleMode == ThrottleFeedbackMode.TcOnly)
         {

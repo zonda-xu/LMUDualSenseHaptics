@@ -70,12 +70,12 @@ internal static class Brake121Tests
         {
             var loop=new FeedbackLoop();var output=loop.Tick(F(0),0,new());var z=Zones(output.LeftTrigger);
             Need(loop.Signals.Braking.Risk==0&&loop.Signals.Braking.Budget.Prompt is >.5 and <.8);
-            Need(loop.LeftTriggerSource=="BrakeBase"&&z[0]==0&&z.Max()<=2);
+            Need(loop.LeftTriggerSource=="BrakeBase"&&z[0]==1&&z.Max()==3);
         });
         check("1.2.1 baseline alone works and all brake features can be disabled",()=>
         {
             var p=new Profile{Lock=new(false,50),Abs=new(false,50)};var loop=new FeedbackLoop();
-            var o=loop.Tick(F(0),0,p);Need(loop.LeftTriggerSource=="BrakeBase"&&Zones(o.LeftTrigger)[0]==0&&Zones(o.LeftTrigger).Max()>0);
+            var o=loop.Tick(F(0),0,p);Need(loop.LeftTriggerSource=="BrakeBase"&&Zones(o.LeftTrigger)[0]==1&&Zones(o.LeftTrigger).Max()>0);
             Need(loop.Tick(F(1),.01,p with{BrakeBase=new(false,50)}).LeftTrigger==TriggerEffect.Off);
         });
         check("1.2.1 rising demand advances prompt without any slip",()=>

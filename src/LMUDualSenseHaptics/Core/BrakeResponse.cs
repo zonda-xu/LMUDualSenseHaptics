@@ -3,6 +3,11 @@ namespace LMUDualSenseHaptics.Core;
 // Preview starting points, not measured tyre peak-friction slip ratios.
 public sealed record BrakeResponse
 {
+    // Independent no-ABS pedal curve, in firmware levels at 100% base gain.
+    public double PedalStartLevel { get; init; } = 2;
+    public double PedalEndLevel { get; init; } = 6;
+    public double PedalExponent { get; init; } = 1.4;
+    public double SeverePulseSeconds { get; init; } = .120;
     public double WarningSlip { get; init; } = .06;
     public double CriticalSlip { get; init; } = .16;
     public double LockSlip { get; init; } = .25;
@@ -28,6 +33,10 @@ public sealed record BrakeResponse
 
     public void Validate()
     {
+        if(new[]{PedalStartLevel,PedalEndLevel,PedalExponent,SeverePulseSeconds}.Any(v=>!double.IsFinite(v)) ||
+            PedalStartLevel is <1 or >4 || PedalEndLevel is <4 or >8 ||
+            PedalExponent is <.5 or >3 || SeverePulseSeconds is <.08 or >.2)
+            throw new InvalidDataException("踏板曲线或严重事件脉冲参数无效。");
         double[] values = [WarningSlip, CriticalSlip, LockSlip, PredictionSeconds, AttackSeconds, ReleaseSeconds,CueHoldSeconds,InitialLimit,UncertaintyMargin,DemandLeadSeconds,LateralReduction,MinimumPrompt,TravelDeadzone,TravelEnd,InputExponent];
         if (values.Any(v => !double.IsFinite(v)) || WarningSlip < .02 || CriticalSlip <= WarningSlip ||
             LockSlip <= CriticalSlip || LockSlip > .8 || PredictionSeconds is < 0 or > .08 ||
