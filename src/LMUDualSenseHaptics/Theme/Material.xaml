@@ -263,4 +263,39 @@
             </ControlTemplate.Triggers>
         </ControlTemplate></Setter.Value></Setter>
     </Style>
+    <Style x:Key="ScrollPage" TargetType="RepeatButton">
+        <Setter Property="Focusable" Value="False"/>
+        <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="RepeatButton"><Border Background="Transparent"/></ControlTemplate></Setter.Value></Setter>
+    </Style>
+    <Style TargetType="ScrollBar">
+        <Setter Property="Width" Value="12"/>
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ScrollBar">
+            <Track x:Name="PART_Track" Orientation="{TemplateBinding Orientation}" IsDirectionReversed="True"
+                   Minimum="{TemplateBinding Minimum}" Maximum="{TemplateBinding Maximum}" Value="{TemplateBinding Value}" ViewportSize="{TemplateBinding ViewportSize}">
+                <Track.DecreaseRepeatButton><RepeatButton x:Name="Before" Style="{StaticResource ScrollPage}" Background="Transparent" Command="{x:Static ScrollBar.PageUpCommand}"/></Track.DecreaseRepeatButton>
+                <Track.Thumb><Thumb MinWidth="6" MinHeight="6" Margin="2" Background="{DynamicResource OutlineBrush}">
+                    <Thumb.Template><ControlTemplate TargetType="Thumb"><Border Background="{TemplateBinding Background}" CornerRadius="4"/></ControlTemplate></Thumb.Template>
+                </Thumb></Track.Thumb>
+                <Track.IncreaseRepeatButton><RepeatButton x:Name="After" Style="{StaticResource ScrollPage}" Background="Transparent" Command="{x:Static ScrollBar.PageDownCommand}"/></Track.IncreaseRepeatButton>
+            </Track>
+            <ControlTemplate.Triggers>
+                <Trigger Property="Orientation" Value="Horizontal">
+                    <Setter TargetName="PART_Track" Property="IsDirectionReversed" Value="False"/>
+                    <Setter TargetName="Before" Property="Command" Value="{x:Static ScrollBar.PageLeftCommand}"/>
+                    <Setter TargetName="After" Property="Command" Value="{x:Static ScrollBar.PageRightCommand}"/>
+                </Trigger>
+            </ControlTemplate.Triggers>
+        </ControlTemplate></Setter.Value></Setter>
+        <Style.Triggers><Trigger Property="Orientation" Value="Horizontal"><Setter Property="Width" Value="Auto"/><Setter Property="Height" Value="12"/></Trigger></Style.Triggers>
+    </Style>
+    <Style TargetType="ToolTip">
+        <Setter Property="Background" Value="{DynamicResource OnSurfaceBrush}"/>
+        <Setter Property="Foreground" Value="{DynamicResource SurfaceBrush}"/>
+        <Setter Property="Padding" Value="10,6"/>
+        <Setter Property="MaxWidth" Value="420"/>
+        <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ToolTip">
+            <Border Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}" CornerRadius="6"><ContentPresenter/></Border>
+        </ControlTemplate></Setter.Value></Setter>
+    </Style>
 </ResourceDictionary>

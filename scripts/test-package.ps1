@@ -28,18 +28,27 @@ try {
     Add-Type -AssemblyName UIAutomationTypes
     $window = [System.Windows.Automation.AutomationElement]::FromHandle($child.MainWindowHandle)
     $scope = [System.Windows.Automation.TreeScope]::Descendants
-    foreach ($name in @('编辑车辆扳机配置','刹车反馈模式')) {
-        $condition = [System.Windows.Automation.PropertyCondition]::new([System.Windows.Automation.AutomationElement]::NameProperty, $name)
-        $combo = $window.FindFirst($scope, $condition)
-        if (-not $combo) { throw "UI control not found: $name" }
-        $pattern = $combo.GetCurrentPattern([System.Windows.Automation.ExpandCollapsePattern]::Pattern)
-        $pattern.Expand()
-        Start-Sleep -Milliseconds 150
-        $pattern.Collapse()
+    foreach ($theme in @('浅色','深色')) {
+        if ($theme -eq '深色') {
+            $condition = [System.Windows.Automation.PropertyCondition]::new([System.Windows.Automation.AutomationElement]::NameProperty, '深色外观')
+            $button = $window.FindFirst($scope, $condition)
+            if (-not $button) { throw 'Theme button not found.' }
+            $button.GetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern).Invoke()
+            Start-Sleep -Milliseconds 150
+        }
+        foreach ($name in @('编辑车辆扳机配置','刹车反馈模式')) {
+            $condition = [System.Windows.Automation.PropertyCondition]::new([System.Windows.Automation.AutomationElement]::NameProperty, $name)
+            $combo = $window.FindFirst($scope, $condition)
+            if (-not $combo) { throw "UI control not found: $name" }
+            $pattern = $combo.GetCurrentPattern([System.Windows.Automation.ExpandCollapsePattern]::Pattern)
+            $pattern.Expand()
+            Start-Sleep -Milliseconds 150
+            $pattern.Collapse()
+        }
     }
     if (-not $child.CloseMainWindow()) { throw 'Could not close application window.' }
     if (-not $launcher.WaitForExit(15000) -or $launcher.ExitCode -ne 0) { throw 'Launcher did not propagate clean application shutdown.' }
-    Write-Host 'PACKAGE PASS: root-only EXE, bin dependencies, Unicode/spaces path, unrelated cwd, WPF startup, Material combo expansion, clean exit.'
+    Write-Host 'PACKAGE PASS: root-only EXE, bin dependencies, Unicode/spaces path, unrelated cwd, WPF startup, Material combos in light/dark themes, clean exit.'
 } finally {
     if ($child -and -not $child.HasExited) { Stop-Process -Id $child.Id -Force }
     if ($launcher -and -not $launcher.HasExited) { Stop-Process -Id $launcher.Id -Force }
