@@ -113,8 +113,8 @@ check('Road uses shared contact rule','WheelContact.IsGrounded(w, c.ContactMinLo
 check('Learning, kappa and grip slip use shared contact rule',signal.count('WheelContact.IsGrounded(q,c.ContactMinLoad)')==3)
 check('Production tests invoke v0.5.2 additions','Revision052Tests.Run(Check);' in (root/'tests/LMUDualSenseHaptics.Tests/Program.cs').read_text(encoding='utf-8'))
 # Protect the v1.0.1 source oracle independently of current production code.
-for name, info in json.loads((root/'tests/baselines/v1.0.1-brake-oracle.json').read_text()).items():
-    oracle=(root/f'tests/LMUDualSenseHaptics.Tests/Legacy101{name}.cs').read_text().split('\n',1)[1]
+for name, info in json.loads((root/'tests/baselines/v1.0.1-brake-oracle.json').read_text(encoding='utf-8')).items():
+    oracle=(root/f'tests/LMUDualSenseHaptics.Tests/Legacy101{name}.cs').read_text(encoding='utf-8').split('\n',1)[1]
     part='Physics' if name=='SignalEngine' else 'Haptics'
     oracle=oracle.replace('namespace LMUDualSenseHaptics.Legacy101;',f'namespace LMUDualSenseHaptics.{part};')
     if name=='SignalEngine': oracle=oracle.removeprefix('using LMUDualSenseHaptics.Physics;\n')
