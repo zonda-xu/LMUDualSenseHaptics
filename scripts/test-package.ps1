@@ -3,6 +3,7 @@ $ErrorActionPreference = 'Stop'
 $testRoot = Join-Path ([System.IO.Path]::GetTempPath()) ('LMU 解压 测试 ' + [guid]::NewGuid().ToString('N'))
 $launcher = $null
 $child = $null
+$started = Get-Date
 try {
     Expand-Archive -LiteralPath $Archive -DestinationPath $testRoot
     $rootFiles = @(Get-ChildItem $testRoot -File)
@@ -49,6 +50,12 @@ try {
     if (-not $child.CloseMainWindow()) { throw 'Could not close application window.' }
     if (-not $launcher.WaitForExit(15000) -or $launcher.ExitCode -ne 0) { throw 'Launcher did not propagate clean application shutdown.' }
     Write-Host 'PACKAGE PASS: root-only EXE, bin dependencies, Unicode/spaces path, unrelated cwd, WPF startup, Material combos in light/dark themes, clean exit.'
+} catch {
+    Write-Host "Package startup diagnostics: $($_.Exception.Message)"
+    Get-WinEvent -FilterHashtable @{LogName='Application'; StartTime=$started} -ErrorAction SilentlyContinue |
+        Where-Object { $_.Message -match 'LMUDualSenseHaptics' } |
+        Select-Object -First 5 | ForEach-Object { Write-Host $_.Message }
+    throw
 } finally {
     if ($child -and -not $child.HasExited) { Stop-Process -Id $child.Id -Force }
     if ($launcher -and -not $launcher.HasExited) { Stop-Process -Id $launcher.Id -Force }
