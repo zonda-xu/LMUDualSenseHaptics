@@ -206,13 +206,6 @@
             <ControlTemplate.Triggers><Trigger Property="IsExpanded" Value="True"><Setter TargetName="Content" Property="Visibility" Value="Visible"/></Trigger></ControlTemplate.Triggers>
         </ControlTemplate></Setter.Value></Setter>
     </Style>
-    <Style TargetType="ToolTip">
-        <Setter Property="Background" Value="{DynamicResource SurfaceHighBrush}"/>
-        <Setter Property="Foreground" Value="{DynamicResource OnSurfaceBrush}"/>
-        <Setter Property="BorderBrush" Value="{DynamicResource OutlineVariantBrush}"/>
-        <Setter Property="Padding" Value="12,8"/>
-        <Setter Property="MaxWidth" Value="420"/>
-    </Style>
     <Style TargetType="ComboBoxItem">
         <Setter Property="Padding" Value="14,10"/>
         <Setter Property="HorizontalContentAlignment" Value="Stretch"/>

@@ -16,6 +16,17 @@ def check(name, assertion):
 for path in list(root.rglob('*.xaml'))+list(root.rglob('*.csproj'))+[root/'Directory.Build.props']:
     ET.parse(path)
     check('XML: '+str(path.relative_to(root)),True)
+# WPF defers resource loading; duplicate implicit styles can compile but crash at startup.
+for path in src.rglob('*.xaml'):
+    for dictionary in ET.parse(path).iter('{http://schemas.microsoft.com/winfx/2006/xaml/presentation}ResourceDictionary'):
+        resource_keys=[]
+        for child in dictionary:
+            key=child.get('{http://schemas.microsoft.com/winfx/2006/xaml}Key')
+            if key is not None: resource_keys.append(('explicit',key))
+            elif child.tag.endswith('}Style') and child.get('TargetType'):
+                resource_keys.append(('type',child.get('TargetType')))
+        check('Unique resource keys: '+str(path.relative_to(root)),len(resource_keys)==len(set(resource_keys)))
+
 main=(src/'MainWindow.xaml').read_text(encoding='utf-8')
 code='\n'.join(p.read_text(encoding='utf-8') for p in src.glob('MainWindow*.cs'))
 for handler in sorted(set(re.findall(r'\b(?:Click|Checked|Unchecked|SelectionChanged)="(\w+)"',main))):
