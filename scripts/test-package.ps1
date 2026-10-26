@@ -47,9 +47,26 @@ try {
             $pattern.Collapse()
         }
     }
+    $condition = [System.Windows.Automation.PropertyCondition]::new([System.Windows.Automation.AutomationElement]::NameProperty, '分享此车配置')
+    $exportButton = $window.FindFirst($scope, $condition)
+    if (-not $exportButton -or $exportButton.Current.IsEnabled) { throw 'Sharing must require a selected vehicle profile.' }
+    $condition = [System.Windows.Automation.PropertyCondition]::new([System.Windows.Automation.AutomationElement]::NameProperty, '导入车辆配置')
+    $importButton = $window.FindFirst($scope, $condition)
+    if (-not $importButton -or -not $importButton.Current.IsEnabled) { throw 'Vehicle import button is unavailable.' }
+    $importButton.GetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern).Invoke()
+    $condition = [System.Windows.Automation.PropertyCondition]::new([System.Windows.Automation.AutomationElement]::NameProperty, '导入车辆扳机配置')
+    $dialog = $null
+    $deadline = [DateTime]::UtcNow.AddSeconds(10)
+    while (-not $dialog -and [DateTime]::UtcNow -lt $deadline) {
+        $dialog = [System.Windows.Automation.AutomationElement]::RootElement.FindFirst($scope, $condition)
+        if (-not $dialog) { Start-Sleep -Milliseconds 100 }
+    }
+    if (-not $dialog) { throw 'Vehicle import file dialog did not open.' }
+    $dialog.GetCurrentPattern([System.Windows.Automation.WindowPattern]::Pattern).Close()
+    Start-Sleep -Milliseconds 200
     if (-not $child.CloseMainWindow()) { throw 'Could not close application window.' }
     if (-not $launcher.WaitForExit(15000) -or $launcher.ExitCode -ne 0) { throw 'Launcher did not propagate clean application shutdown.' }
-    Write-Host 'PACKAGE PASS: root-only EXE, bin dependencies, Unicode/spaces path, unrelated cwd, WPF startup, Material combos in light/dark themes, clean exit.'
+    Write-Host 'PACKAGE PASS: root-only EXE, bin dependencies, Unicode/spaces path, unrelated cwd, WPF startup, Material combos in light/dark themes, vehicle share/import controls and import cancellation, clean exit.'
 } catch {
     Write-Host "Package startup diagnostics: $($_.Exception.Message)"
     Get-WinEvent -FilterHashtable @{LogName='Application'; StartTime=$started} -ErrorAction SilentlyContinue |

@@ -62,12 +62,12 @@ internal static class Brake13Tests
             for(int n=100;n<130;n++)l.Tick(F(n,n*.01),n*.01,P);
             Need(!l.Signals.Braking.WarningActive);
         });
-        check("1.3 warning and lock have distinct rates with stronger moderate-gain output",()=>
+        check("1.5 warning and lock retain distinct rates at gentler moderate gain",()=>
         {
             var l=new FeedbackLoop();var warning=l.Tick(F(0,0,.0601f),0,P);Pulse(warning,12);
-            Need(Amplitude(warning.LeftTrigger)>=3);
+            Need(Amplitude(warning.LeftTrigger)==2);
             var locked=l.Tick(F(1,.01,1,1),.01,P);Pulse(locked,24);
-            Need(Amplitude(locked.LeftTrigger)>=5&&Amplitude(locked.LeftTrigger)>Amplitude(warning.LeftTrigger));
+            Need(Amplitude(locked.LeftTrigger)==3&&Amplitude(locked.LeftTrigger)>Amplitude(warning.LeftTrigger));
         });
         check("1.3 severe cue holds briefly then returns to the warning stage",()=>
         {

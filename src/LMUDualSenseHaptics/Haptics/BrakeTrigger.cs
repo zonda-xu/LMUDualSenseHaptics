@@ -27,10 +27,10 @@ public static class BrakeTrigger
         if(mode==BrakeFeedbackMode.NoAbs && braking && p.Lock.Gain>0 && (e.LockActive||e.WarningActive))
         {
             bool locked=e.LockActive;
-            // Perceptual gain and a stage floor give short onsets a usable cue.
-            // The gain still controls strength monotonically, and zero stays off.
+            // Linear gain softens moderate/default settings without changing detection,
+            // cue timing or the full-strength endpoint. Zero still disables cues.
             double strength=locked?.85+.15*e.LockSeverity:.55+.35*e.Risk;
-            byte amplitude=(byte)Math.Clamp((int)Math.Ceiling(8*Math.Sqrt(p.Lock.Gain)*strength),1,8);
+            byte amplitude=(byte)Math.Clamp((int)Math.Ceiling(8*p.Lock.Gain*strength),1,8);
             // Starts at zero so even a fully depressed trigger receives the pulse.
             return (TriggerEffect.Vibration(0,amplitude,(byte)(locked?24:12)),locked?"LockPulse":"BrakeLimit");
         }
