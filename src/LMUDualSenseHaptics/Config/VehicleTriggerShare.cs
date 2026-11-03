@@ -43,8 +43,8 @@ public static class VehicleTriggerShare
     public static VehicleTriggerSettings Import(string path)
     {
         using var stream=File.OpenRead(path);
-        var document=JsonSerializer.Deserialize<Document>(stream,Json)??throw new InvalidDataException("车辆扳机分享文件为空");
-        if(document.Format!=Format||document.Version!=1)throw new InvalidDataException("不是支持的车辆扳机分享文件");
+        var document=JsonSerializer.Deserialize<Document>(stream,Json)??throw L.InvalidData(L.M("Text_D1BF7A2262"));
+        if(document.Format!=Format||document.Version!=1)throw L.InvalidData(L.M("Text_7E2D73C103"));
         var vehicle=new VehicleTriggerSettings(document.VehicleModel,document.VehicleClass,document.Settings);
         vehicle.Validate();
         return vehicle with{VehicleModel=vehicle.VehicleModel.Trim(),VehicleClass=vehicle.VehicleClass.Trim()};

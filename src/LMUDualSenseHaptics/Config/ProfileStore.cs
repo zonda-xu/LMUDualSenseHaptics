@@ -7,10 +7,10 @@ public static class ProfileStore
     public static readonly JsonSerializerOptions Json=new(){WriteIndented=true,PropertyNameCaseInsensitive=true};
     public static string DirectoryPath=>Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),"LMUDualSenseHaptics");
     public static string FilePath=>Path.Combine(DirectoryPath,"profile.json");
-    public static Profile Load(string? path=null){path??=FilePath;if(!File.Exists(path))return new();var p=JsonSerializer.Deserialize<Profile>(File.ReadAllText(path),Json)??throw new InvalidDataException("配置为空");p.Validate();return p;}
+    public static Profile Load(string? path=null){path??=FilePath;if(!File.Exists(path))return new();var p=JsonSerializer.Deserialize<Profile>(File.ReadAllText(path),Json)??throw L.InvalidData(L.M("Text_07F89BFD62"));p.Validate();return p;}
     public static VehiclePreset LoadPreset(string path)
     {
-        var preset=JsonSerializer.Deserialize<VehiclePreset>(File.ReadAllText(path),Json)??throw new InvalidDataException("车型预设为空");
+        var preset=JsonSerializer.Deserialize<VehiclePreset>(File.ReadAllText(path),Json)??throw L.InvalidData(L.M("Text_2D749E7D00"));
         preset.Validate();return preset;
     }
     public static void Save(Profile p,string? path=null)

@@ -1,3 +1,4 @@
+using LMUDualSenseHaptics.Core;
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
 using LMUDualSenseHaptics.Haptics;
@@ -81,7 +82,7 @@ internal sealed class WasapiVoiceCoilDevice : IDisposable
     private static AudioPcmFormat ReadFormat(IntPtr pointer)
     {
         int extra = (ushort)Marshal.ReadInt16(pointer, 16);
-        if (extra > 1024) throw new InvalidDataException("音频格式扩展长度异常");
+        if (extra > 1024) throw L.InvalidData(L.M("Text_D4C21B3734"));
         var bytes = new byte[18 + extra]; Marshal.Copy(pointer, bytes, 0, bytes.Length);
         return AudioPcmFormat.Parse(bytes);
     }
@@ -101,7 +102,7 @@ internal sealed class WasapiVoiceCoilDevice : IDisposable
             Check(client.Initialize(0, EventCallback, 0, 0, format, IntPtr.Zero));
             Check(client.SetEventHandle(audioEvent.SafeWaitHandle.DangerousGetHandle()));
             Check(client.GetBufferSize(out capacity));
-            if (capacity == 0 || capacity > Format.SampleRate) throw new InvalidDataException("WASAPI 缓冲大小异常");
+            if (capacity == 0 || capacity > Format.SampleRate) throw L.InvalidData(L.M("Text_455F6C7AFA"));
             guid = RenderClientId; Check(client.GetService(ref guid, out obj)); renderer = (IAudioRenderClient)obj;
             pcm = new float[checked((int)capacity * 4)]; bytes = new byte[checked((int)capacity * Format.BlockAlign)];
             synth = new(Format.SampleRate);
@@ -120,7 +121,7 @@ internal sealed class WasapiVoiceCoilDevice : IDisposable
         var c = client ?? throw new ObjectDisposedException(nameof(WasapiVoiceCoilDevice));
         var r = renderer ?? throw new ObjectDisposedException(nameof(WasapiVoiceCoilDevice));
         Check(c.GetCurrentPadding(out uint padding));
-        if (padding > capacity) throw new InvalidDataException("WASAPI padding 超界");
+        if (padding > capacity) throw L.InvalidData(L.M("Text_EF5350B6D5"));
         uint frames = capacity - padding; if (frames == 0) return;
         int samples = checked((int)frames * 4), size = checked((int)frames * Format.BlockAlign);
         // Include already queued samples when enforcing the command expiry deadline.

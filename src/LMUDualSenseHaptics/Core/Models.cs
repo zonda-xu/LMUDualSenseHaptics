@@ -1,3 +1,4 @@
+using LMUDualSenseHaptics.Core;
 using System.Collections.Immutable;
 using System.Numerics;
 using System.Text.Json.Serialization;
@@ -34,21 +35,21 @@ public sealed record TelemetryFrame(long Sequence, double CapturedAtSec, double 
     public void Validate()
     {
         if (!double.IsFinite(CapturedAtSec) || !double.IsFinite(SourceTimeSec) || !double.IsFinite(SourceAgeSec) || SourceAgeSec < 0)
-            throw new InvalidDataException("遥测时钟无效");
+            throw L.InvalidData(L.M("Text_23511D4D63"));
         float[] values = [SpeedMps, LocalVxMps, LocalVyMps, LocalVzMps, AccelX, AccelY, AccelZ, Brake01, Throttle01, Steering, Rpm, MaxRpm, LastImpactTime, LastImpactMagnitude];
         if (values.Any(v => !float.IsFinite(v)) || SpeedMps < 0 || Brake01 is < 0 or > 1 || Throttle01 is < 0 or > 1 || Math.Abs(Steering) > 1 || Gear is < -1 or > 20 || Rpm < 0 || MaxRpm < 0)
-            throw new InvalidDataException("遥测物理字段非有限值或超界");
+            throw L.InvalidData(L.M("Text_98376B04A8"));
         if (new[]{FilteredBrake01,RearBrakeBias}.Any(x=>x is float v && (!float.IsFinite(v)||v<0||v>1)) ||
             (MotorTorqueNm is float torque && !float.IsFinite(torque)) || MotorState > 3)
-            throw new InvalidDataException("制动工况字段无效");
-        if (Wheels.Length != 4) throw new InvalidDataException("需要 FL/FR/RL/RR 四轮");
+            throw L.InvalidData(L.M("Text_6D52BDB32D"));
+        if (Wheels.Length != 4) throw L.InvalidData(L.M("Text_E4CD5A98B0"));
         foreach (var q in Wheels)
             if (!q.Valid || q.TireLoadN < 0 || new[] {q.OmegaRadPerSec,q.SuspDeflectionM,q.SuspForceN,q.TireLoadN,q.WheelYLocationM,q.TireVerticalDeflectionM,q.GroundLongitudinalMps,q.GroundLateralMps}.Any(v=>!float.IsFinite(v)) || (q.TireDirty is float dirty && !float.IsFinite(dirty)) ||
                 (q.BrakePressure01 is float pressure && (!float.IsFinite(pressure) || pressure is < 0 or > 1)) ||
                 new[]{q.LongitudinalPatchMps,q.LongitudinalForceN,q.LateralForceN,q.TirePressureKpa,q.TireTemperatureK,q.Wear01}.Any(x=>x is float v&&!float.IsFinite(v)) ||
                 (q.Wear01 is float wear && (wear<0||wear>1)) ||
                 (q.SlidingFraction is float fraction && (!float.IsFinite(fraction) || fraction is < 0 or > 1)))
-                throw new InvalidDataException("四轮数据无效");
+                throw L.InvalidData(L.M("Text_1C18804EEA"));
     }
 }
 public readonly record struct FeedbackFrame(byte LeftActuator, byte RightActuator, TriggerEffect LeftTrigger, TriggerEffect RightTrigger, bool UseAudioHaptics = false)
@@ -96,32 +97,32 @@ public sealed record Profile
     public ImmutableArray<VehiclePreset> VehiclePresets { get; init; } = [];
     public void Validate()
     {
-        if (AudioHaptics is null) throw new InvalidDataException("缺少音圈配置");
+        if (AudioHaptics is null) throw L.InvalidData(L.M("Text_59A109ADEC"));
         AudioHaptics.Validate();
         if (!Enum.IsDefined(BrakeMode) || !Enum.IsDefined(ThrottleMode) || UiTheme is not ("Light" or "Dark") || RoadSensitivity is < 25 or > 200)
-            throw new InvalidDataException("油门模式、界面主题或路面灵敏度非法");
+            throw L.InvalidData(L.M("Text_4898CD98C5"));
         if (HidTargetHz != 250 || TelemetryStaleMs is < 50 or > 1000 || SpatialSeparation is < 0 or > 100 || !double.IsFinite(RightGain) || RightGain is <= 0 or > 2 || !double.IsFinite(RedlineStartRatio) || RedlineStartRatio is < .90 or >= .99)
-            throw new InvalidDataException("配置数值超界");
+            throw L.InvalidData(L.M("Text_D190879A25"));
         foreach(var f in new[]{BrakeBase,ThrottleBase,Abs,Lock,Tc,Wheelspin,Shift,Redline,Road,Kerb,GripSlip,Engine,Impact})
-            if(f is null || f.Strength is < 0 or > 100) throw new InvalidDataException("功能强度须在 0..100");
-        if(DefaultParameters is null || VehiclePresets.IsDefault)throw new InvalidDataException("缺少默认参数或车型预设列表");
+            if(f is null || f.Strength is < 0 or > 100) throw L.InvalidData(L.M("Text_E2EFB69DA1"));
+        if(DefaultParameters is null || VehiclePresets.IsDefault)throw L.InvalidData(L.M("Text_DD30D5E595"));
         DefaultParameters.Validate();
         var identities=new HashSet<(int,string,string)>();
         TriggerDefaults?.Validate();
-        if(VehicleTriggers.IsDefault)throw new InvalidDataException("车辆扳机配置集合为空");
+        if(VehicleTriggers.IsDefault)throw L.InvalidData(L.M("Text_97C7122500"));
         var triggerIdentities=new HashSet<(string,string)>();
         foreach(var vehicle in VehicleTriggers)
         {
-            if(vehicle is null)throw new InvalidDataException("车辆扳机配置为空");
+            if(vehicle is null)throw L.InvalidData(L.M("Text_B48376C243"));
             vehicle.Validate();
             if(!triggerIdentities.Add((vehicle.VehicleModel.Trim().ToUpperInvariant(),vehicle.VehicleClass.Trim().ToUpperInvariant())))
-                throw new InvalidDataException("车辆扳机配置身份重复");
+                throw L.InvalidData(L.M("Text_4EEC0F10A4"));
         }
         foreach(var preset in VehiclePresets)
         {
-            if(preset is null)throw new InvalidDataException("车型预设为空");
+            if(preset is null)throw L.InvalidData(L.M("Text_2D749E7D00"));
             preset.Validate();
-            if(!identities.Add((preset.GameVersion,preset.VehicleModel,preset.VehicleClass)))throw new InvalidDataException("车型预设身份重复");
+            if(!identities.Add((preset.GameVersion,preset.VehicleModel,preset.VehicleClass)))throw L.InvalidData(L.M("Text_0BCB543178"));
         }
     }
 }

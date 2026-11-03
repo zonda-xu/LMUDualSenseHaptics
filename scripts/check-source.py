@@ -32,7 +32,7 @@ code='\n'.join(p.read_text(encoding='utf-8') for p in src.glob('MainWindow*.cs')
 for handler in sorted(set(re.findall(r'\b(?:Click|Checked|Unchecked|SelectionChanged)="(\w+)"',main))):
     check('WPF event handler: '+handler, bool(re.search(r'\b'+handler+r'\s*\(',code)))
 xaml='\n'.join(p.read_text(encoding='utf-8') for p in src.rglob('*.xaml'))
-keys=set(re.findall(r'x:Key="(\w+)"',xaml))
+keys=set(re.findall(r'x:Key="(\w+)"',xaml)) | set(json.loads((src/'Localization/zh-CN.json').read_text(encoding='utf-8')))
 references=set(re.findall(r'\{(?:Static|Dynamic)Resource (\w+)\}',xaml))
 check('Every named XAML resource is declared', references<=keys)
 for panel in ('BrakeSettings','ThrottleSettings','ExtraTriggerSettings','RoadSettings','OtherGripSettings','SpatialSettings','AudioSettings'):
@@ -45,7 +45,8 @@ check('v0.3 preserved TriggerEffect encoder',hashlib.sha256((src/'Hardware/Trigg
 original=json.loads((root/'tests/baselines/v0.4-preserved-fingerprints.json').read_text(encoding='utf-8'))
 for filename,expected in original['unchanged_files'].items():
     # v1.2 deliberately replaces L2 mapping and adds brake telemetry/diagnostics.
-    if filename in {'Haptics/TriggerEngine.cs','Telemetry/LmuLayout.cs','Runtime/FeedbackLoop.cs'}: continue
+    # v1.6 localizes validation messages in RoadResponse/ProfileStore; historical hashes remain unchanged.
+    if filename in {'Haptics/TriggerEngine.cs','Telemetry/LmuLayout.cs','Runtime/FeedbackLoop.cs','Core/RoadResponse.cs','Config/ProfileStore.cs'}: continue
     check('v0.4 byte-identical protected source: '+filename,hashlib.sha256((src/filename).read_bytes()).hexdigest()==expected)
 
 triggers=(src/'Haptics/TriggerEngine.cs').read_text(encoding='utf-8')

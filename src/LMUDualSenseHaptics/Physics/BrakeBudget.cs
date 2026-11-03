@@ -22,15 +22,15 @@ public sealed class BrakeBudget
     public int Stops { get; private set; }
     public int ContextCount => samples.Count;
     public string Context { get; private set; } = "";
-    public string Evidence { get; private set; } = "初始参考，未标定";
-    public string FrameTiming => intervals == 0 ? "等待有效帧间隔" :
-        $"物理帧间隔 min/avg/max={intervalMin*1000:F1}/{intervalSum/intervals*1000:F1}/{intervalMax*1000:F1} ms";
+    public UiText Evidence { get; private set; } = L.M("Text_66EB927AF3");
+    public UiText FrameTiming => intervals == 0 ? L.M("Text_8CD610A4FE") :
+        L.M("Text_9026A2157C", intervalMin*1000, intervalSum/intervals*1000, intervalMax*1000);
 
     public void Reset()
     {
         samples.Clear(); Array.Clear(referenceLoad); Array.Clear(minLoad); Array.Clear(maxLoad); Array.Clear(loadFrames);
         sampledStop=false;previousSlip=0;lastTime=double.NaN;intervals=0;intervalSum=intervalMax=0;intervalMin=double.PositiveInfinity;
-        Prompt=EstimatedLimit=Confidence=DemandRate=0;Stops=0;LoadFactor=1;Context="";Evidence="初始参考，未标定";
+        Prompt=EstimatedLimit=Confidence=DemandRate=0;Stops=0;LoadFactor=1;Context="";Evidence=L.M("Text_66EB927AF3");
     }
 
     private static int Bin(float? value, double width) => value is float v ? (int)Math.Floor(v/width) : -999;
@@ -117,6 +117,6 @@ public sealed class BrakeBudget
         }
         double margin=c.UncertaintyMargin*(1-.5*Confidence)+(validLoads<4?.02:0);
         Prompt=driving?Math.Clamp(EstimatedLimit-margin-Math.Min(.15,c.DemandLeadSeconds*DemandRate),c.MinimumPrompt,.9):0;
-        Evidence=$"{(Stops>=3?"多次滑移起点参考":Stops>0?"单次起点，低置信度":"初始参考，未标定")} · 有效载荷 {validLoads}/4 · {FrameTiming}";
+        Evidence=L.M("Text_8FB514B627", (Stops>=3?L.M("Text_DFDE9D400D"):Stops>0?L.M("Text_7534FEF9DA"):L.M("Text_66EB927AF3")), validLoads, FrameTiming);
     }
 }

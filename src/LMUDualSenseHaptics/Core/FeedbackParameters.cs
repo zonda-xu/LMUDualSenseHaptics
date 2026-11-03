@@ -1,9 +1,10 @@
+using LMUDualSenseHaptics.Core;
 namespace LMUDualSenseHaptics.Core;
 
 // Explicit starting values, not a claim of measured vehicle calibration.
 public sealed record FeedbackParameters
 {
-    public string Name {get;init;}="LMU v1.3-preview 初始参数";
+    public string Name {get;init;}="LMU v1.3-preview";
     public BrakeResponse BrakeResponse {get;init;}=new();
     public RoadResponse RoadResponse {get;init;}=new();
     public double V0 {get;init;}=.025;
@@ -37,9 +38,9 @@ public sealed record FeedbackParameters
     public double NoiseMultiplier {get;init;}=3;
     public void Validate()
     {
-        if(RoadResponse is null)throw new InvalidDataException("缺少路面响应参数");
+        if(RoadResponse is null)throw L.InvalidData(L.M("Text_CB755D1381"));
         RoadResponse.Validate();
-        if(BrakeResponse is null)throw new InvalidDataException("缺少刹车响应参数");
+        if(BrakeResponse is null)throw L.InvalidData(L.M("Text_66047B8115"));
         BrakeResponse.Validate();
         double[] values=[V0,V1,F0,F1,L0,L1,Fmin,Lmin,ContactMinLoad,AngleOffset0,AngleOffset1,
             RatioThreshold0,RatioThreshold1,LoadGate0,LoadGate1,LateralWeight,JerkThreshold,DeltaVThreshold,
@@ -54,7 +55,7 @@ public sealed record FeedbackParameters
             LearningMaxLongAccel<=0||LearningMaxLatAccel<=0||RadiusTrustedSeconds<.25||
             AxleRadiusTolerance is <=0 or >.15||RadiusDriftTolerance is <=0 or >.15||
             RoadLearningSeconds<1||NoiseMultiplier is <1 or >6)
-            throw new InvalidDataException("反馈参数非法：检查有限值、单位与阈值顺序");
+            throw L.InvalidData(L.M("Text_EA51E0724E"));
     }
 }
 
@@ -69,7 +70,7 @@ public sealed record VehiclePreset(int GameVersion,string VehicleModel,string Ve
     {
         if(GameVersion<=0||string.IsNullOrWhiteSpace(VehicleModel)||string.IsNullOrWhiteSpace(VehicleClass)||
             Parameters is null||(Verified&&string.IsNullOrWhiteSpace(EvidenceFile)))
-            throw new InvalidDataException("车型预设缺少身份、参数或验证证据");
+            throw L.InvalidData(L.M("Text_3F69460641"));
         Parameters.Validate();
     }
 }

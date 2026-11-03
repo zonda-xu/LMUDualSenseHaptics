@@ -1,3 +1,4 @@
+using LMUDualSenseHaptics.Core;
 using System.Buffers.Binary;
 namespace LMUDualSenseHaptics.Hardware;
 
@@ -7,7 +8,7 @@ public sealed record AudioPcmFormat(int SampleRate, int Channels, int Bits, int 
 {
     public static AudioPcmFormat Parse(ReadOnlySpan<byte> bytes)
     {
-        if (bytes.Length < 18) throw new InvalidDataException("WAVEFORMATEX 太短");
+        if (bytes.Length < 18) throw L.InvalidData(L.M("Text_31930C1544"));
         ushort tag = BinaryPrimitives.ReadUInt16LittleEndian(bytes);
         int channels = BinaryPrimitives.ReadUInt16LittleEndian(bytes[2..]);
         int rate = BinaryPrimitives.ReadInt32LittleEndian(bytes[4..]);
@@ -17,7 +18,7 @@ public sealed record AudioPcmFormat(int SampleRate, int Channels, int Bits, int 
         if (tag == 0xFFFE)
         {
             if (bytes.Length < 40 || BinaryPrimitives.ReadUInt16LittleEndian(bytes[16..]) < 22)
-                throw new InvalidDataException("WAVEFORMATEXTENSIBLE 太短");
+                throw L.InvalidData(L.M("Text_4313DFB6B9"));
             valid = BinaryPrimitives.ReadUInt16LittleEndian(bytes[18..]);
             mask = BinaryPrimitives.ReadUInt32LittleEndian(bytes[20..]);
             var subtype = new Guid(bytes.Slice(24, 16));
@@ -25,10 +26,10 @@ public sealed record AudioPcmFormat(int SampleRate, int Channels, int Bits, int 
                   subtype == new Guid("00000001-0000-0010-8000-00aa00389b71") ? (ushort)1 : (ushort)0;
         }
         if (channels != 4 || mask is not (0 or 0x33))
-            throw new InvalidDataException($"音圈需要四声道 Quadraphonic；当前 {channels} 声道，mask=0x{mask:X}。不会转成立体声或输出到默认扬声器。");
+            throw L.InvalidData(L.M("Text_B22AC18F67", channels, mask));
         if (rate is < 8000 or > 192000 || bits is not (16 or 24 or 32) || align != channels * bits / 8 ||
             valid <= 0 || valid > bits || tag is not (1 or 3) || tag == 3 && (bits != 32 || valid != 32))
-            throw new InvalidDataException("不支持此 PCM 格式；请选择四声道 48000 Hz");
+            throw L.InvalidData(L.M("Text_F35051CF69"));
         return new(rate, channels, bits, valid, align, tag == 3, mask);
     }
 
@@ -36,7 +37,7 @@ public sealed record AudioPcmFormat(int SampleRate, int Channels, int Bits, int 
     {
         int width = Bits / 8;
         if (samples.Length % 4 != 0 || bytes.Length != samples.Length * width)
-            throw new ArgumentException("PCM 缓冲区必须包含完整四声道帧");
+            throw L.Argument(L.M("Text_55BB0C4770"));
         for (int i = 0; i < samples.Length; i++)
         {
             // Defense in depth: even a faulty upstream mixer cannot feed speakers.
@@ -68,17 +69,17 @@ public static class AudioEndpointSelection
         if (selectedId.Length > 0)
         {
             var selected = endpoints.FirstOrDefault(e => e.Id == selectedId)
-                ?? throw new InvalidDataException("所选音频端点已离线；请刷新音频设备");
+                ?? throw L.InvalidData(L.M("Text_AE8017D1C8"));
             if (hidContainer != Guid.Empty && selected.ContainerId != Guid.Empty && hidContainer != selected.ContainerId)
-                throw new InvalidDataException("所选音频端点与当前 HID 手柄不是同一个设备");
+                throw L.InvalidData(L.M("Text_6736A300BA"));
             if (selected.ContainerId != hidContainer || hidContainer == Guid.Empty)
-                if (!selected.HasControllerName) throw new InvalidDataException("无法确认所选设备是 DualSense；拒绝向普通声卡输出");
+                if (!selected.HasControllerName) throw L.InvalidData(L.M("Text_7CE966BAC6"));
             return selected;
         }
         // No implicit default-device fallback, and no arbitrary first controller.
         var matched = endpoints.Where(e => hidContainer != Guid.Empty && e.ContainerId == hidContainer).ToArray();
         if (matched.Length == 1) return matched[0];
-        throw new InvalidDataException(matched.Length > 1 ? "同一手柄存在多个音频端点，请手动选择" :
-            "未匹配到当前 USB 手柄的音频端点。请检查 USB 数据线、启用手柄播放设备并刷新；无法取得设备身份时须手动选择。");
+        throw L.InvalidData(matched.Length > 1 ? L.M("Text_EAE7E9CF5A") :
+            L.M("Text_26951431D8"));
     }
 }

@@ -13,12 +13,12 @@ public sealed class FeedbackLoop
     private FeedbackParameters? parameterBase,selectedParameters;
     private BrakeResponse? selectedResponse;
     private VehicleTriggerSettings? cachedVehicle;
-    public string TriggerProfileSource {get;private set;}="通用扳机设置";
+    public UiText TriggerProfileSource {get;private set;}=L.M("Text_23651E74ED");
     private readonly TriggerEngine triggers=new();public FrameMixer Mixer {get;}=new();
     public string Reason {get;private set;}="WaitingForLMU";
     public bool AdvancedFeedbackEnabled {get;private set;}
     public GripLayers Layers {get;private set;}
-    public string ParameterSource {get;private set;}="等待驾驶";
+    public UiText ParameterSource {get;private set;}=L.M("Text_8475E45FAD");
     public ChannelLevels Channels {get;private set;}
     public string LeftTriggerSource {get;private set;}="OFF";
     public string RightTriggerSource {get;private set;}="OFF";
@@ -31,9 +31,9 @@ public sealed class FeedbackLoop
             f.Validate();
             if(!f.Connected)return Off("Disconnected");
             if(f.Paused)return Off("Paused");
-            if(!f.Driving)return Off("非驾驶状态");
+            if(!f.Driving)return Off("NotDriving");
             double age=now-f.CapturedAtSec+f.SourceAgeSec;
-            if(age<0||age>p.TelemetryStaleMs/1000.0)return Off("Stale：遥测超时/时钟逆序");
+            if(age<0||age>p.TelemetryStaleMs/1000.0)return Off("Stale");
             var root=p;
             var vehicle=TriggerProfiles.Find(root,f);
             if(!ReferenceEquals(cachedRoot,root)||!ReferenceEquals(cachedVehicle,vehicle))
@@ -42,7 +42,7 @@ public sealed class FeedbackLoop
                 triggers.Reset();
             }
             p=cachedTrigger!;
-            TriggerProfileSource=vehicle is null?"通用扳机设置":"车辆专属："+vehicle.VehicleModel+" · "+vehicle.VehicleClass;
+            TriggerProfileSource=vehicle is null?L.M("Text_23651E74ED"):L.M("Text_56993E68E2", vehicle.VehicleModel, vehicle.VehicleClass);
             var preset=p.VehiclePresets.FirstOrDefault(v=>v.Matches(f));
             var parameters=preset?.Parameters??p.DefaultParameters;
             var settings=vehicle?.Settings??root.TriggerDefaults;
@@ -56,8 +56,8 @@ public sealed class FeedbackLoop
             {Signals.Reset();triggers.Reset();activeParameters=parameters;activePreset=preset;activeBrakeMode=p.BrakeMode;}
             Signals.Update(f,p,parameters);
             AdvancedFeedbackEnabled=true;
-            ParameterSource=preset is null?"默认初始参数："+parameters.Name:"已验证车型预设："+parameters.Name;
-            Reason="Driving："+ParameterSource+" · "+TriggerProfileSource;
+            ParameterSource=preset is null?L.M("Text_C5F3E13145"):L.M("Text_2F31B5C1D2", parameters.Name);
+            Reason="Driving";
             Layers=GripEngine.Render(Signals,f,now,root);
             var triggerFrame=triggers.Render(Signals,f,now,p);
             LeftTriggerSource=triggerFrame.Left.Mode==5?"OFF":triggers.LeftSource;
@@ -85,7 +85,7 @@ public sealed class FeedbackLoop
     }
     public FeedbackFrame Off(string reason)
     {
-        Signals.Reset();triggers.Reset();cachedRoot=cachedTrigger=null;cachedVehicle=null;TriggerProfileSource="通用扳机设置";activeParameters=null;activePreset=null;activeBrakeMode=null;AdvancedFeedbackEnabled=false;
-        Layers=default;Channels=default;LeftTriggerSource=RightTriggerSource="OFF";ParameterSource="等待驾驶";Mixer.ResetDiagnostics();Reason=reason;return FeedbackFrame.Off;
+        Signals.Reset();triggers.Reset();cachedRoot=cachedTrigger=null;cachedVehicle=null;TriggerProfileSource=L.M("Text_23651E74ED");activeParameters=null;activePreset=null;activeBrakeMode=null;AdvancedFeedbackEnabled=false;
+        Layers=default;Channels=default;LeftTriggerSource=RightTriggerSource="OFF";ParameterSource=L.M("Text_8475E45FAD");Mixer.ResetDiagnostics();Reason=reason;return FeedbackFrame.Off;
     }
 }

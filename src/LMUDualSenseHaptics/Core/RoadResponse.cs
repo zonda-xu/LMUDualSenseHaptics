@@ -1,3 +1,4 @@
+using LMUDualSenseHaptics.Core;
 namespace LMUDualSenseHaptics.Core;
 
 // Engineering starting values, not measured per-car tuning or SimHub source code.
@@ -35,6 +36,6 @@ public sealed record RoadResponse
             ContactMinLoadN<=0||MinimumOutput>.4||ResponseGamma is <.3 or >2||
             KerbBaseLevel is <=0 or >1||KerbSpacingM is <.1 or >2||
             AttackSeconds is <.002 or >.05||ReleaseSeconds is <.02 or >.25)
-            throw new InvalidDataException("路面响应参数超界或阈值顺序错误");
+            throw L.InvalidData(L.M("Text_F996536132"));
     }
 }

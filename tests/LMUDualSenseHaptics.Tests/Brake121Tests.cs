@@ -106,7 +106,7 @@ internal static class Brake121Tests
         check("1.2.1 zero or constant loads cannot masquerade as learned capacity",()=>
         {
             foreach(float load in new[]{0f,3000f})
-            {var b=new BrakeBudget();TelemetryFrame? prev=null;for(int n=0;n<50;n++){var f=F(n) with{Wheels=F(n).Wheels.Select(w=>w with{TireLoadN=load}).ToImmutableArray()};b.Update(f,prev,0,new(),100);prev=f;}Need(b.LoadFactor==1&&b.Evidence.Contains("有效载荷 0/4"));}
+            {var b=new BrakeBudget();TelemetryFrame? prev=null;for(int n=0;n<50;n++){var f=F(n) with{Wheels=F(n).Wheels.Select(w=>w with{TireLoadN=load}).ToImmutableArray()};b.Update(f,prev,0,new(),100);prev=f;}Need(b.LoadFactor==1&&b.Evidence.ToString().Contains("有效载荷 0/4"));}
         });
         check("1.2.1 safe braking never teaches a true limit",()=>
         {
@@ -135,7 +135,7 @@ internal static class Brake121Tests
         check("1.2.1 physics frame intervals ignore repeated output ticks",()=>
         {
             var loop=new FeedbackLoop();loop.Tick(F(0),0,new());loop.Tick(F(1),.01,new());var timing=loop.Signals.Braking.Budget.FrameTiming;
-            for(int i=0;i<10;i++)loop.Tick(F(1),.01+i*.004,new());Need(loop.Signals.Braking.Budget.FrameTiming==timing&&timing.Contains("10.0/10.0/10.0"));
+            for(int i=0;i<10;i++)loop.Tick(F(1),.01+i*.004,new());Need(loop.Signals.Braking.Budget.FrameTiming.ToString()==timing.ToString()&&timing.ToString().Contains("10.0/10.0/10.0"));
         });
         check("1.2.1 game curve calibration maps brake reference back to trigger travel",()=>
         {

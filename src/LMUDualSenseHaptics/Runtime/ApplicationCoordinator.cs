@@ -7,28 +7,28 @@ using LMUDualSenseHaptics.Diagnostics;
 using LMUDualSenseHaptics.Haptics;
 using LMUDualSenseHaptics.Config;
 namespace LMUDualSenseHaptics.Runtime;
-internal sealed record Status(string State,string Device,string Telemetry,string Error,TelemetryFrame? Frame,FeedbackFrame Output,
+internal sealed record Status(string State,UiText Device,UiText Telemetry,UiText Error,TelemetryFrame? Frame,FeedbackFrame Output,
     double Abs,double Lock,double Tc,double Spin,double Shift,double Redline,GripLayers Layers,double TelemetryHz,double OutputHz,double CpuPercent,long WorkingSet,
-    double IntervalP50,double IntervalP95,double IntervalP99,double LatencyP50,double LatencyP95,long Dropped,string WheelDiagnostics,double AllocatedMBPerSecond=0,bool DeviceConnected=false,bool AdvancedFeedbackEnabled=false,string ParameterSource="等待驾驶",ChannelLevels Channels=default,string LeftTriggerSource="OFF",string RightTriggerSource="OFF",string LearningState="",VoiceCoilOutputStatus? Audio=null);
+    double IntervalP50,double IntervalP95,double IntervalP99,double LatencyP50,double LatencyP95,long Dropped,UiText WheelDiagnostics,double AllocatedMBPerSecond=0,bool DeviceConnected=false,bool AdvancedFeedbackEnabled=false,UiText? ParameterSource=null,ChannelLevels Channels=default,string LeftTriggerSource="OFF",string RightTriggerSource="OFF",UiText? LearningState=null,VoiceCoilOutputStatus? Audio=null);
 internal sealed class ApplicationCoordinator:IAsyncDisposable
 {
     private sealed record DeviceTest(string Name,double EndsAt);
     private DeviceTest? deviceTest;
     public void RequestDeviceTest(string name)
     {
-        if(name is not ("OFF" or "L2" or "R2" or "LEFT" or "RIGHT" or "PULSE_L2" or "PULSE_R2" or "AUDIO_LEFT" or "AUDIO_RIGHT" or "AUDIO_KERB_LEFT" or "AUDIO_KERB_RIGHT"))throw new ArgumentException("未知手柄检查项目");
-        if(Volatile.Read(ref latest) is {Driving:true})throw new InvalidOperationException("请先离开驾驶状态，再检查手柄");
+        if(name is not ("OFF" or "L2" or "R2" or "LEFT" or "RIGHT" or "PULSE_L2" or "PULSE_R2" or "AUDIO_LEFT" or "AUDIO_RIGHT" or "AUDIO_KERB_LEFT" or "AUDIO_KERB_RIGHT"))throw L.Argument(L.M("Text_0CD2387CD6"));
+        if(Volatile.Read(ref latest) is {Driving:true})throw L.InvalidOperation(L.M("Text_B1A8D0570E"));
         if (name.StartsWith("AUDIO_",StringComparison.Ordinal) && !Profile.AudioHaptics.Enabled)
-            throw new InvalidOperationException("请先启用 USB 音圈模式");
+            throw L.InvalidOperation(L.M("Text_22262A7BF8"));
         if ((name is "LEFT" or "RIGHT") && Profile.AudioHaptics.Enabled)
-            throw new InvalidOperationException("检查普通握把震动前，请先关闭 USB 音圈；音圈请使用“左握把震动”或“右握把震动”按钮");
+            throw L.InvalidOperation(L.M("Text_CC5A3A39C6"));
         Volatile.Write(ref deviceTest,new(name,Clock.Now+1));
     }
     private readonly VoiceCoilOutput voiceCoils=new();
     public AudioEndpointInfo[] AudioEndpoints=>voiceCoils.Endpoints;
     public void RefreshAudioDevices()=>voiceCoils.RefreshDevices();
-    private Profile profile=new();private TelemetryFrame? latest;private Status status=new("Disconnected","未连接","等待 LMU","",null,FeedbackFrame.Off,0,0,0,0,0,0,default,0,0,0,0,0,0,0,0,0,0,"");
-    private string telemetryStatus="等待 LMU",telemetryError="";
+    private Profile profile=new();private TelemetryFrame? latest;private Status status=new("Disconnected",L.M("Text_3D52574CE1"),L.M("Text_BE1462586F"),"",null,FeedbackFrame.Off,0,0,0,0,0,0,default,0,0,0,0,0,0,0,0,0,0,"");
+    private UiText telemetryStatus=L.M("Text_BE1462586F"),telemetryError="";
     private readonly CancellationTokenSource stop=new();private Task? telemetryTask,outputTask;private readonly FeedbackLoop pipeline=new();
     private TelemetryRecorder? debugLog;
     private readonly LogSampling logSampling=new();
@@ -36,11 +36,11 @@ internal sealed class ApplicationCoordinator:IAsyncDisposable
     private readonly Queue<double> intervals=new(),latencies=new();private double lastWrite,lastCount;private long writes,frames;private double lastCpu;private long lastAllocated=GC.GetTotalAllocatedBytes();
     public Status Current=>Volatile.Read(ref status);public Profile Profile=>Volatile.Read(ref profile);
     public string? RecordingPath=>Volatile.Read(ref recordingPath);
-    public void SetProfile(Profile p){p.Validate();if(RecordingPath is not null)throw new InvalidOperationException("请先停止录制，再更改参数");Volatile.Write(ref profile,p);}
-    public void Start(){if(outputTask is not null)return;voiceCoils.Start();debugLog=new(Path.Combine(ProfileStore.DirectoryPath,"logs","debug-"+DateTime.UtcNow.ToString("yyyyMMdd-HHmmss-fff")+".jsonl"),TelemetryRecorder.DebugLimitBytes);debugLog.Record(new{Kind="session",Version="1.5.0",DebugHz=2,TelemetryHz=50,OutputHz=10});telemetryTask=Task.Run(TelemetryLoop);outputTask=Task.Run(OutputLoop);}
+    public void SetProfile(Profile p){p.Validate();if(RecordingPath is not null)throw L.InvalidOperation(L.M("Text_DED43BEAAA"));Volatile.Write(ref profile,p);}
+    public void Start(){if(outputTask is not null)return;voiceCoils.Start();debugLog=new(Path.Combine(ProfileStore.DirectoryPath,"logs","debug-"+DateTime.UtcNow.ToString("yyyyMMdd-HHmmss-fff")+".jsonl"),TelemetryRecorder.DebugLimitBytes);debugLog.Record(new{Kind="session",Version="1.6.0-preview",DebugHz=2,TelemetryHz=50,OutputHz=10});telemetryTask=Task.Run(TelemetryLoop);outputTask=Task.Run(OutputLoop);}
     public void StartRecording()
     {
-        lock(recordGate){if(recorder is not null)return;recordingPath=Path.Combine(ProfileStore.DirectoryPath,"logs","telemetry-"+DateTime.UtcNow.ToString("yyyyMMdd-HHmmss-fff")+".jsonl");recorder=new(recordingPath);recorder.Record(new{Kind="profile",Version="1.5.0",Profile,TelemetryHz=50,OutputHz=10,RawSnapshots=false});}
+        lock(recordGate){if(recorder is not null)return;recordingPath=Path.Combine(ProfileStore.DirectoryPath,"logs","telemetry-"+DateTime.UtcNow.ToString("yyyyMMdd-HHmmss-fff")+".jsonl");recorder=new(recordingPath);recorder.Record(new{Kind="profile",Version="1.6.0-preview",Profile,TelemetryHz=50,OutputHz=10,RawSnapshots=false});}
     }
     public async Task StopRecording(){TelemetryRecorder? r;lock(recordGate){r=recorder;recorder=null;recordingPath=null;}if(r is not null)await r.DisposeAsync();}
     private void RecordError(string message)
@@ -60,15 +60,15 @@ internal sealed class ApplicationCoordinator:IAsyncDisposable
                 while(!stop.IsCancellationRequested && reader.IsAlive)
                 {
                     reader.WaitForUpdate();
-                    try{reader.CopySnapshot(bytes);}catch(TimeoutException){telemetryStatus="共享锁暂时忙";continue;}
+                    try{reader.CopySnapshot(bytes);}catch(TimeoutException){telemetryStatus=L.M("Text_A74C3216FD");continue;}
                     var frame=parser.Parse(bytes,Clock.Now);
                     if(frame is not null){Volatile.Write(ref latest,frame);Interlocked.Increment(ref frames);lock(recordGate){if(recorder is {Stopped:false}&&logSampling.Telemetry(frame.CapturedAtSec))recorder.Record(new{Kind="telemetry",Frame=frame});}}
                     else if(!bytes[LmuLayout.TelemetryOffset+2].Equals((byte)1))Volatile.Write(ref latest,null);
-                    telemetryStatus=$"LMU 车辆数据已连接 · 游戏接口版本 {parser.Version}";
+                    telemetryStatus=L.M("Text_79FCEC6AC1", parser.Version);
                 }
-                Volatile.Write(ref latest,null);telemetryStatus="等待 LMU";
+                Volatile.Write(ref latest,null);telemetryStatus=L.M("Text_BE1462586F");
             }
-            catch(Exception ex){Volatile.Write(ref latest,null);telemetryError=ex.Message;telemetryStatus="遥测连接/解析错误";RecordError(ex.Message);}
+            catch(Exception ex){Volatile.Write(ref latest,null);telemetryError=L.Error(ex);telemetryStatus=L.M("Text_CDDAE82AEE");RecordError(ex.Message);}
             stop.Token.WaitHandle.WaitOne(500);
         }
     }
@@ -86,14 +86,14 @@ internal sealed class ApplicationCoordinator:IAsyncDisposable
                 device.EnsureConnected(now);
                 var f=Volatile.Read(ref latest);var p=Profile;
                 var feedback=!device.Connected?pipeline.Off("Disconnected"):pipeline.Tick(f,now,p);
-                if(telemetryError.Length>0)feedback=pipeline.Off("Error："+telemetryError);
+                if(!telemetryError.IsEmpty)feedback=pipeline.Off("Error");
                 var audioCommand=pipeline.AdvancedFeedbackEnabled && f is not null
                     ? VoiceCoilCommand.Create(pipeline.Signals.RoadSignals,pipeline.Layers,f,now,p,
                         pipeline.Mixer.ContinuousGain,pipeline.Mixer.EngineGain) : VoiceCoilCommand.Off;
                 var test=Volatile.Read(ref deviceTest);
                 if(test is not null && now<test.EndsAt && f is not {Driving:true})
                 {
-                    pipeline.Off("DeviceReady：手柄检查 "+test.Name);
+                    pipeline.Off("DeviceReady:"+test.Name);
                     audioCommand=VoiceCoilCommand.Test(test.Name,now,test.EndsAt,p.AudioHaptics);
                     feedback=test.Name switch
                     {
@@ -119,7 +119,7 @@ internal sealed class ApplicationCoordinator:IAsyncDisposable
                     if(f is not null&&pipeline.AdvancedFeedbackEnabled&&f.Sequence!=lastLatencySequence){latencies.Enqueue((after-f.CapturedAtSec)*1000);if(latencies.Count>4096)latencies.Dequeue();lastLatencySequence=f.Sequence;}
                 }
                 var e=pipeline.Signals;var layers=pipeline.Layers;
-                string deviceLabel=device.Label;
+                UiText deviceLabel=device.Label;
 
                 lock(recordGate)
                 {
@@ -130,24 +130,24 @@ internal sealed class ApplicationCoordinator:IAsyncDisposable
                     nextUi=now+.1;double dt=now-lastCount;
                     double cpu=process.TotalProcessorTime.TotalSeconds;long allocated=GC.GetTotalAllocatedBytes();
                     double outputHz=dt>0?writes/dt:0,teleHz=dt>0?Interlocked.Exchange(ref frames,0)/dt:0;
-                    string wd=$"刹车 {e.Braking.Mode} · {e.Braking.Evidence} · 前/后风险 {e.Braking.FrontRisk:F2}/{e.Braking.RearRisk:F2} · slip={e.Braking.MaxSlip:F3} rate={e.Braking.MaxSlipRate:F2}/s · 预设位置={e.Braking.Budget.Prompt:P0} 上限参考={e.Braking.Budget.EstimatedLimit:P0} 置信度={e.Braking.Budget.Confidence:P0} · ABS墙={e.Braking.AbsOnsetBrake?.ToString("F2")??"无"}\n"+string.Join("\n",e.Wheels.Select((w,i)=>$"{new[]{"FL","FR","RL","RR"}[i]}  R={w.Radius:F4}m n={w.RadiusSamples} t={w.RadiusTime:F1}s  κ={(w.Kappa?.ToString("F3")??"未知")}  α={w.Alpha:F3}rad  shock={w.Shock:F3} slip={w.Slip:F3}  noiseV={w.NoiseVelocity:F4}m/s noiseF/L={w.NoiseForce:F3}/{w.NoiseLoad:F3} learn={w.RoadLearnTime:F1}s"));
+                    UiText wd=L.M("Text_FFB2B533F5", e.Braking.Mode, e.Braking.Evidence, e.Braking.FrontRisk, e.Braking.RearRisk, e.Braking.MaxSlip, e.Braking.MaxSlipRate, e.Braking.Budget.Prompt, e.Braking.Budget.EstimatedLimit, e.Braking.Budget.Confidence, e.Braking.AbsOnsetBrake?.ToString("F2")??L.M("Text_484D556139"))+string.Join("\n",e.Wheels.Select((w,i)=>$"{new[]{"FL","FR","RL","RR"}[i]}  R={w.Radius:F4}m n={w.RadiusSamples} t={w.RadiusTime:F1}s  κ={(w.Kappa?.ToString("F3")??L.M("Text_4D8C1C5B42"))}  α={w.Alpha:F3}rad  shock={w.Shock:F3} slip={w.Slip:F3}  noiseV={w.NoiseVelocity:F4}m/s noiseF/L={w.NoiseForce:F3}/{w.NoiseLoad:F3} learn={w.RoadLearnTime:F1}s"));
                     wd+="\n"+string.Join("\n",e.RoadSignals.Wheels.Select((w,i)=>
                     {
                         var raw=f is not null && f.Wheels.Length>i?f.Wheels[i]:null;
-                        return $"{new[]{"FL","FR","RL","RR"}[i]} {w.Source} contact={w.Contact} via={w.ContactEvidence} type={raw?.SurfaceType?.ToString()??"未知"} material={raw?.TerrainName??""} texture={w.Texture:F3} bump={w.Bump:F3} kerb={w.Kerb:F3} inferred={w.InferredKerb:F3} susV={w.SuspensionVelocity:F4}m/s loadRate={w.LoadRate:F2}/s";
+                        return $"{new[]{"FL","FR","RL","RR"}[i]} {w.Source} contact={w.Contact} via={w.ContactEvidence} type={raw?.SurfaceType?.ToString()??L.M("Text_4D8C1C5B42")} material={raw?.TerrainName??""} texture={w.Texture:F3} bump={w.Bump:F3} kerb={w.Kerb:F3} inferred={w.InferredKerb:F3} susV={w.SuspensionVelocity:F4}m/s loadRate={w.LoadRate:F2}/s";
                     }));
-                    string state=pipeline.Reason;string err=device.LastError.Length>0?device.LastError:telemetryError;
-                    if(p.AudioHaptics.Enabled && device.Connected && audioStatus.Error.Length>0)
-                        err=string.Join(" | ",new[]{err,audioStatus.Error}.Where(x=>x.Length>0));
-                    if(recorder?.Failure is string fail)err="录制："+fail;
-                    if(debugLog?.Failure is string debugFail)err=string.Join(" | ",new[]{err,"诊断日志："+debugFail}.Where(x=>x.Length>0));
+                    string state=pipeline.Reason;UiText err=!device.LastError.IsEmpty?device.LastError:telemetryError;
+                    if(p.AudioHaptics.Enabled && device.Connected && !audioStatus.Error.IsEmpty)
+                        err=UiText.Join(" | ",new[]{err,audioStatus.Error}.Where(x=>!x.IsEmpty));
+                    if(recorder?.Failure is UiText fail)err=L.M("Text_8C2C60C997")+fail;
+                    if(debugLog?.Failure is UiText debugFail)err=UiText.Join(" | ",new[]{err,L.M("Text_83A45FADC3")+debugFail}.Where(x=>!x.IsEmpty));
                     Volatile.Write(ref status,new(state,deviceLabel,telemetryStatus,err,f,device.Connected?feedback:FeedbackFrame.Off,e.Abs,e.Lock,e.Tc,e.Spin,e.Shift,e.Redline,layers,teleHz,outputHz,dt>0?(cpu-lastCpu)/dt/Environment.ProcessorCount*100:0,process.WorkingSet64,
                     Percentile(intervals,.5),Percentile(intervals,.95),Percentile(intervals,.99),Percentile(latencies,.5),Percentile(latencies,.95),recorder?.Dropped??0,wd,dt>0?(allocated-lastAllocated)/dt/1048576.0:0,device.Connected,pipeline.AdvancedFeedbackEnabled,pipeline.ParameterSource,pipeline.Channels,pipeline.LeftTriggerSource,pipeline.RightTriggerSource,e.LearningState,audioStatus));
                     if(logSampling.Status(now))debugLog?.Record(new{Kind="status",At=now,Status=Current});lastCount=now;lastCpu=cpu;lastAllocated=allocated;writes=0;
                 }
             }
         }
-        catch(Exception ex){Volatile.Write(ref status,Current with{State="Error",Error=ex.Message,Output=FeedbackFrame.Off});RecordError(ex.ToString());}
+        catch(Exception ex){Volatile.Write(ref status,Current with{State="Error",Error=L.Error(ex),Output=FeedbackFrame.Off});RecordError(ex.ToString());}
         finally{voiceCoils.Submit(new(false,"",Guid.Empty,0),VoiceCoilCommand.Off);process.Dispose();}
     }
     private long lastLatencySequence=-1;

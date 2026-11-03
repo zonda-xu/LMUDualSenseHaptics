@@ -24,15 +24,16 @@ public partial class MainWindow:Window
     private bool closing,closed,building;
     public MainWindow()
     {
-        InitializeComponent();App.RegisterEmergencyStop(runtime.EmergencyStop);
+        L.SetLanguage(UiLanguageStore.Load());
+        InitializeComponent();InitializeLanguage();App.RegisterEmergencyStop(runtime.EmergencyStop);
         try{runtime.SetProfile(ProfileStore.Load());}
-        catch(Exception ex){Notify("配置读取失败，暂用默认值："+ex.Message);}
+        catch(Exception ex){Notify(L.T("Text_AC6A98F7A2")+L.Error(ex).ToString());}
         ThemeManager.Apply(runtime.Profile.UiTheme);
-        ThemeButton.Content=runtime.Profile.UiTheme=="Dark"?"浅色外观":"深色外观";
+        ThemeButton.Content=runtime.Profile.UiTheme=="Dark"?L.T("Text_02470E632F"):L.T("Text_46BAD67D06");
         RefreshTriggerScopes(true);timer.Tick+=(_,_)=>Refresh();timer.Start();Closing+=OnClosing;runtime.Start();
     }
     private void Notify(string text)=>NoticeText.Text=text;
-    private void ChangedNotice()=>Notify("设置已更改。点击“保存配置”后，下次启动会继续使用。");
+    private void ChangedNotice()=>Notify(L.T("Text_46B24E8C40"));
     private void BuildSettings()
     {
         building=true;
@@ -40,39 +41,39 @@ public partial class MainWindow:Window
         {
             foreach(var panel in new[]{BrakeSettings,ThrottleSettings,ExtraTriggerSettings,RoadSettings,OtherGripSettings,SpatialSettings,AudioSettings})panel.Children.Clear();
             channelLabels.Clear();featureRows.Clear();
-            AddFeature(ThrottleSettings,"Tc","TC 介入阻力","牵引力控制介入时，增加油门扳机阻力。");
-            AddFeature(ExtraTriggerSettings,"ThrottleBase","R2 基础阻力","关闭“仅 TC 介入时增加阻力”后，可设置持续的油门阻力。");
-            AddFeature(ExtraTriggerSettings,"Wheelspin","R2 空转提示","加速时车轮空转，通过 R2 脉冲提醒；需关闭上方的 TC 专用选项。");
-            AddFeature(ExtraTriggerSettings,"Redline","R2 转速上限提示","接近引擎转速上限时，通过 R2 脉冲提醒；需关闭上方的 TC 专用选项。");
-            AddFeature(ExtraTriggerSettings,"Shift","R2 升挡提示","升挡时 R2 产生脉冲；不影响握把升挡震动。需关闭 TC 专用选项。");
-            AddFeature(BrakeSettings,"BrakeBase","L2 基础阻力","按下刹车时提供逐渐增强的阻力。");
+            AddFeature(ThrottleSettings,"Tc",L.T("Text_717E16F6E5"),L.T("Text_7DC923F491"));
+            AddFeature(ExtraTriggerSettings,"ThrottleBase",L.T("Text_20F1B8CACB"),L.T("Text_2E87F971FE"));
+            AddFeature(ExtraTriggerSettings,"Wheelspin",L.T("Text_0841CA3BC7"),L.T("Text_874FF664FE"));
+            AddFeature(ExtraTriggerSettings,"Redline",L.T("Text_248F8E41F4"),L.T("Text_D80210284A"));
+            AddFeature(ExtraTriggerSettings,"Shift",L.T("Text_0BE0426112"),L.T("Text_C52D5B0FC1"));
+            AddFeature(BrakeSettings,"BrakeBase",L.T("Text_3E0454700A"),L.T("Text_49A067BFE7"));
             BrakeModeChoice.SelectedIndex=(int)EditingTriggers.BrakeMode;
-            AddFeature(BrakeSettings,"Abs","ABS 提示","自动 GT3 使用旧版 ABS 脉冲；手动 ABS 模式使用介入阻力墙。");
-            AddFeature(BrakeSettings,"Lock","临界制动预警","其他车型临界滑移输出 12 Hz 脉冲、明显抱死输出 24 Hz 脉冲，短暂保持避免闪断；GT3 保留旧版提示。");
+            AddFeature(BrakeSettings,"Abs",L.T("Text_7D43DF8DB0"),L.T("Text_CEA484531F"));
+            AddFeature(BrakeSettings,"Lock",L.T("Text_439CC3C8A9"),L.T("Text_39220DC61D"));
             var brakeResponse=EditingTriggers.BrakeResponse;
-            AddSetting("L2 起始死区",0,30,(int)(brakeResponse.TravelDeadzone*100),"填入游戏中刹车轴起始死区；软件不读取真实扳机行程。",v=>SetBrakeResponse(EditingTriggers.BrakeResponse with{TravelDeadzone=v/100.0}),"%",BrakeSettings);
-            AddSetting("L2 满刹行程",50,100,(int)(brakeResponse.TravelEnd*100),"达到游戏 100% 刹车时的扳机行程。",v=>SetBrakeResponse(EditingTriggers.BrakeResponse with{TravelEnd=v/100.0}),"%",BrakeSettings);
-            AddSetting("刹车输入曲线指数",25,400,(int)(brakeResponse.InputExponent*100),"100 为线性，200 表示平方曲线；仅用于阻力位置映射。",v=>SetBrakeResponse(EditingTriggers.BrakeResponse with{InputExponent=v/100.0})," /100",BrakeSettings);
-            AddFeature(RoadSettings,"Road","路面细节与冲击","通过左右握把感知路面纹理、颠簸和较大的垂向冲击。");
-            AddFeature(RoadSettings,"Kerb","路肩反馈","压过路肩时，对应一侧的握把产生明显震动。");
-            AddFeature(OtherGripSettings,"GripSlip","轮胎打滑","轮胎明显打滑时，握把震动提示抓地力下降。");
-            AddFeature(OtherGripSettings,"Impact","碰撞","发生碰撞时，握把产生短促冲击。");
-            AddFeature(OtherGripSettings,"Shift","升挡提示","升挡时，握把短促震动；R2 升挡提示在扳机配置中单独调整。");
-            AddFeature(OtherGripSettings,"Engine","引擎","震动随引擎转速变化；路面和路肩反馈优先。");
-            AddSetting("路面灵敏度",25,200,runtime.Profile.RoadSensitivity,"100% 为起点；不影响 L2、R2 或引擎。",
+            AddSetting(L.T("Text_69DE6CAEC3"),0,30,(int)(brakeResponse.TravelDeadzone*100),L.T("Text_2442F7AF07"),v=>SetBrakeResponse(EditingTriggers.BrakeResponse with{TravelDeadzone=v/100.0}),"%",BrakeSettings);
+            AddSetting(L.T("Text_7CB361A9BE"),50,100,(int)(brakeResponse.TravelEnd*100),L.T("Text_030A50EADF"),v=>SetBrakeResponse(EditingTriggers.BrakeResponse with{TravelEnd=v/100.0}),"%",BrakeSettings);
+            AddSetting(L.T("Text_1146995631"),25,400,(int)(brakeResponse.InputExponent*100),L.T("Text_B937AF696D"),v=>SetBrakeResponse(EditingTriggers.BrakeResponse with{InputExponent=v/100.0})," /100",BrakeSettings);
+            AddFeature(RoadSettings,"Road",L.T("Text_6B2E003D89"),L.T("Text_2B21636A7E"));
+            AddFeature(RoadSettings,"Kerb",L.T("Text_E7E0BE2AA4"),L.T("Text_188772D669"));
+            AddFeature(OtherGripSettings,"GripSlip",L.T("Text_367D3E0C3C"),L.T("Text_515DB81C0B"));
+            AddFeature(OtherGripSettings,"Impact",L.T("Text_E21744C570"),L.T("Text_5F4E258E13"));
+            AddFeature(OtherGripSettings,"Shift",L.T("Text_836EC950E4"),L.T("Text_2BA353071F"));
+            AddFeature(OtherGripSettings,"Engine",L.T("Text_78A7F252A6"),L.T("Text_9E01A8D301"));
+            AddSetting(L.T("Text_57003C1C74"),25,200,runtime.Profile.RoadSensitivity,L.T("Text_40DDC0FC6F"),
                 v=>runtime.SetProfile(runtime.Profile with{RoadSensitivity=v}));
-            AddSetting("左右分离",0,100,runtime.Profile.SpatialSeparation,"数值越高，左右路面与路肩的交叉传递越少。",
+            AddSetting(L.T("Text_458B90C7C2"),0,100,runtime.Profile.SpatialSeparation,L.T("Text_3F9612157F"),
                 v=>runtime.SetProfile(runtime.Profile with{SpatialSeparation=v}));
             var audio=runtime.Profile.AudioHaptics;
             AudioModeCheck.IsChecked=audio.Enabled;SwapAudioSidesCheck.IsChecked=audio.SwapSides;
             KerbFallbackCheck.IsChecked=audio.DynamicKerbFallback;
-            AddSetting("音圈总强度",0,100,audio.MasterStrength,"先检查左右握把震动，再调高；该滑块独立于 Windows 设备音量。",
+            AddSetting(L.T("Text_3A8405BFED"),0,100,audio.MasterStrength,L.T("Text_F77CC9FAAC"),
                 v=>SetAudio(runtime.Profile.AudioHaptics with{MasterStrength=v}),"%",AudioSettings);
-            AddSetting("路面震动频率",25,180,audio.RoadFrequencyHz,"调节细碎路面震动的触感；频率越高，感觉越细密。",
+            AddSetting(L.T("Text_1184995BE6"),25,180,audio.RoadFrequencyHz,L.T("Text_F989A56847"),
                 v=>SetAudio(runtime.Profile.AudioHaptics with{RoadFrequencyHz=v})," Hz",AudioSettings);
-            AddSetting("路肩震动频率",40,220,audio.KerbFrequencyHz,"调节路肩震动的触感；压过路肩的节奏还会随车速变化。",
+            AddSetting(L.T("Text_F1D0D86F24"),40,220,audio.KerbFrequencyHz,L.T("Text_23150A3860"),
                 v=>SetAudio(runtime.Profile.AudioHaptics with{KerbFrequencyHz=v})," Hz",AudioSettings);
-            AddSetting("颠簸震动频率",20,100,audio.BumpFrequencyHz,"调节较大路面颠簸的触感。",
+            AddSetting(L.T("Text_B757A91BC4"),20,100,audio.BumpFrequencyHz,L.T("Text_E97A9907D1"),
                 v=>SetAudio(runtime.Profile.AudioHaptics with{BumpFrequencyHz=v})," Hz",AudioSettings);
             audioEndpointSignature="";RefreshAudioChoices();
             TcOnlyCheck.IsChecked=EditingTriggers.ThrottleMode==ThrottleFeedbackMode.TcOnly;
@@ -86,7 +87,7 @@ public partial class MainWindow:Window
         if(building||!IsInitialized||BrakeModeChoice is null||runtime.RecordingPath is not null)return;
         if(BrakeModeChoice.SelectedIndex is <0 or >2)return;
         try{SetTriggers(EditingTriggers with{BrakeMode=(BrakeFeedbackMode)BrakeModeChoice.SelectedIndex});ChangedNotice();}
-        catch(Exception ex){Notify(ex.Message);}
+        catch(Exception ex){Notify(L.Error(ex).ToString());}
     }
     private void AddFeature(StackPanel panel,string key,string name,string hint)
     {
@@ -104,11 +105,11 @@ public partial class MainWindow:Window
         var description=new TextBlock{Text=hint,Style=(Style)FindResource("Muted"),Margin=new Thickness(0,0,24,0)};
         Grid.SetRow(description,1);
         var slider=new Slider{Minimum=0,Maximum=100,Value=feature.Strength,TickFrequency=1,IsSnapToTickEnabled=true,Margin=new Thickness(0,0,12,0),ToolTip=hint};
-        AutomationProperties.SetName(slider,name+"强度");
+        AutomationProperties.SetName(slider,L.F("Text_54FC56B588", name));
         var value=new TextBlock{Text=feature.Strength.ToString(),HorizontalAlignment=HorizontalAlignment.Right,VerticalAlignment=VerticalAlignment.Center,Margin=new Thickness(0,0,14,0)};
-        var check=new CheckBox{IsChecked=feature.Enabled,ToolTip="启用"+name,VerticalAlignment=VerticalAlignment.Center};
-        AutomationProperties.SetName(check,"启用"+name);
-        var diagnostic=new TextBlock{Text="等待驾驶",Style=(Style)FindResource("Muted"),HorizontalAlignment=HorizontalAlignment.Right,Margin=new Thickness(0,0,14,0)};
+        var check=new CheckBox{IsChecked=feature.Enabled,ToolTip=L.F("Text_F64012A4F2", name),VerticalAlignment=VerticalAlignment.Center};
+        AutomationProperties.SetName(check,L.F("Text_F64012A4F2", name));
+        var diagnostic=new TextBlock{Text=L.T("Text_8475E45FAD"),Style=(Style)FindResource("Muted"),HorizontalAlignment=HorizontalAlignment.Right,Margin=new Thickness(0,0,14,0)};
         Grid.SetColumn(slider,1);Grid.SetColumn(value,2);Grid.SetColumn(check,3);Grid.SetRowSpan(check,2);
         Grid.SetRow(diagnostic,1);Grid.SetColumn(diagnostic,1);Grid.SetColumnSpan(diagnostic,2);
         foreach(var element in new FrameworkElement[]{title,description,slider,value,check,diagnostic})row.Children.Add(element);
@@ -127,7 +128,7 @@ public partial class MainWindow:Window
                 }
                 value.Text=((int)slider.Value).ToString();ChangedNotice();
             }
-            catch(Exception ex){Notify(ex.Message);}
+            catch(Exception ex){Notify(L.Error(ex).ToString());}
         }
         slider.ValueChanged+=(_,_)=>Changed();check.Checked+=(_,_)=>Changed();check.Unchecked+=(_,_)=>Changed();
     }
@@ -147,7 +148,7 @@ public partial class MainWindow:Window
         {
             if(building||runtime.RecordingPath is not null)return;
             try{changed((int)slider.Value);value.Text=(int)slider.Value+unit;ChangedNotice();}
-            catch(Exception ex){Notify(ex.Message);}
+            catch(Exception ex){Notify(L.Error(ex).ToString());}
         };
     }
     private void SetAudio(AudioHapticsSettings settings)=>runtime.SetProfile(runtime.Profile with{AudioHaptics=settings});
@@ -160,17 +161,17 @@ public partial class MainWindow:Window
                 SwapSides=SwapAudioSidesCheck.IsChecked==true,DynamicKerbFallback=KerbFallbackCheck.IsChecked==true});
             ChangedNotice();
         }
-        catch(Exception ex){Notify(ex.Message);}
+        catch(Exception ex){Notify(L.Error(ex).ToString());}
     }
     private void AudioDeviceChanged(object sender,SelectionChangedEventArgs e)
     {
         if(building||!IsInitialized||runtime.RecordingPath is not null||AudioDevicesCombo.SelectedItem is not AudioChoice selected)return;
         try{SetAudio(runtime.Profile.AudioHaptics with{EndpointId=selected.Id});ChangedNotice();}
-        catch(Exception ex){Notify(ex.Message);}
+        catch(Exception ex){Notify(L.Error(ex).ToString());}
     }
     private void RefreshAudioDevicesClick(object sender,RoutedEventArgs e)=>runtime.RefreshAudioDevices();
     private void SoundSettingsClick(object sender,RoutedEventArgs e)
-    {try{Process.Start(new ProcessStartInfo("control.exe","mmsys.cpl,,0"){UseShellExecute=true});}catch(Exception ex){Notify(ex.Message);}}
+    {try{Process.Start(new ProcessStartInfo("control.exe","mmsys.cpl,,0"){UseShellExecute=true});}catch(Exception ex){Notify(L.Error(ex).ToString());}}
     private void RefreshAudioChoices()
     {
         var devices=runtime.AudioEndpoints;string selected=runtime.Profile.AudioHaptics.EndpointId;
@@ -179,9 +180,9 @@ public partial class MainWindow:Window
         audioEndpointSignature=signature;bool before=building;building=true;
         try
         {
-            var choices=new List<AudioChoice>{new("","自动选择当前 USB 手柄")};
+            var choices=new List<AudioChoice>{new("",L.T("Text_D798B9D15B"))};
             choices.AddRange(devices.Select(d=>new AudioChoice(d.Id,d.DisplayName)));
-            if(selected.Length>0&&!choices.Any(c=>c.Id==selected))choices.Add(new(selected,"已保存设备（当前未连接）"));
+            if(selected.Length>0&&!choices.Any(c=>c.Id==selected))choices.Add(new(selected,L.T("Text_FF99D2F025")));
             AudioDevicesCombo.ItemsSource=choices;AudioDevicesCombo.SelectedValue=selected;
         }
         finally{building=before;}
@@ -191,8 +192,8 @@ public partial class MainWindow:Window
         bool only=EditingTriggers.ThrottleMode==ThrottleFeedbackMode.TcOnly;
         foreach(var key in new[]{"ThrottleBase","Wheelspin","Redline","Shift"})
             if(featureRows.TryGetValue("T:"+key,out var row)){row.IsEnabled=!only;row.Opacity=only?.52:1;}
-        LegacyHint.Text=only?"当前 R2 仅在牵引力控制介入时增加阻力。关闭上方选项，可启用以下效果及升挡脉冲。":
-            "当前可使用基础阻力、空转、转速上限及升挡提示；多个事件同时发生时，优先响应升挡和 TC。";
+        LegacyHint.Text=only?L.T("Text_0739920D84"):
+            L.T("Text_A74745D056");
     }
     private void ThrottleModeChanged(object sender,RoutedEventArgs e)
     {
@@ -202,14 +203,14 @@ public partial class MainWindow:Window
             SetTriggers(EditingTriggers with{ThrottleMode=TcOnlyCheck.IsChecked==true?ThrottleFeedbackMode.TcOnly:ThrottleFeedbackMode.Legacy});
             UpdateModeControls();ChangedNotice();
         }
-        catch(Exception ex){Notify(ex.Message);}
+        catch(Exception ex){Notify(L.Error(ex).ToString());}
     }
     private void ThemeClick(object sender,RoutedEventArgs e)
     {
-        if(runtime.RecordingPath is not null){Notify("停止录制后再更改主题，保持录制配置一致。");return;}
+        if(runtime.RecordingPath is not null){Notify(L.T("Text_2E186D458A"));return;}
         var theme=runtime.Profile.UiTheme=="Dark"?"Light":"Dark";
         runtime.SetProfile(runtime.Profile with{UiTheme=theme});ThemeManager.Apply(theme);
-        ThemeButton.Content=theme=="Dark"?"浅色外观":"深色外观";ChangedNotice();
+        ThemeButton.Content=theme=="Dark"?L.T("Text_02470E632F"):L.T("Text_46BAD67D06");ChangedNotice();
     }
     private static int EncodedPeak(TriggerEffect e)
     {
@@ -221,34 +222,34 @@ public partial class MainWindow:Window
     {
         RefreshTriggerScopes();
         var active=TriggerProfiles.Find(runtime.Profile,runtime.Current.Frame);
-        ActiveTriggerProfileText.Text="当前输出配置："+(active is null?"通用设置":active.VehicleModel+" · "+active.VehicleClass);
+        ActiveTriggerProfileText.Text=L.T("Text_36EF5E06D9")+(active is null?L.T("Text_18A9D61DEE"):active.VehicleModel+" · "+active.VehicleClass);
         bool recording=runtime.RecordingPath is not null;
         TriggerSettingsRoot.IsEnabled=VibrationSettingsRoot.IsEnabled=!recording;
-        ThemeButton.IsEnabled=!recording;RecordButton.Content=recording?"停止记录驾驶数据":"开始记录驾驶数据";
+        ThemeButton.IsEnabled=!recording;RecordButton.Content=recording?L.T("Text_B7CED79990"):L.T("Text_F04853B20F");
         var s=runtime.Current;var f=s.Frame;RefreshAudioChoices();
         var audio=s.Audio;bool audioMode=runtime.Profile.AudioHaptics.Enabled;
-        AudioStatusText.Text=!audioMode?"当前使用普通握把震动。":audio is null?"正在连接手柄音频设备…":
-            audio.Message+(audio.Ready?"\n已连接，可在“连接与工具”中检查左右握把震动。":"\n请检查 USB 连接、手柄播放设备及设备音量。");
-        StateText.Text=s.State.StartsWith("Driving",StringComparison.Ordinal)?"驾驶中":
-            s.State.StartsWith("DeviceReady",StringComparison.Ordinal)?"手柄检查中":
-            s.State.StartsWith("Stale",StringComparison.Ordinal)?"车辆数据中断，反馈已暂停":
-            s.State is "Paused"?"游戏已暂停":s.State is "非驾驶状态"?"等待进入驾驶":
-            s.State is "WaitingForLMU"?"等待启动 LMU":s.State is "Disconnected"?"请通过 USB 连接 DualSense":s.State;
-        DeviceChip.Text=s.DeviceConnected?"DualSense · USB 已连接":"DualSense · 未连接";
-        CarText.Text=f is null?"通过 USB 连接 DualSense，进入 LMU 驾驶后自动启用反馈。":$"{f.VehicleModel}  /  {f.VehicleClass}  ·  {f.SpeedMps*3.6:F0} km/h  ·  {f.Rpm:F0} RPM";
-        ConnectionText.Text=$"车辆数据 {s.TelemetryHz:F0} 次/秒   ·   扳机更新 {s.OutputHz:F0} 次/秒   ·   "+(audioMode?(audio?.Ready==true?"音圈已启动":"音圈未就绪"):"普通握把震动");
-        ErrorText.Text=s.Error;ErrorBanner.Visibility=string.IsNullOrEmpty(s.Error)?Visibility.Collapsed:Visibility.Visible;
-        ValidationText.Text=$"{s.Telemetry}\n手柄：{s.Device}\n参数：{s.ParameterSource}\n{s.LearningState}";
+        AudioStatusText.Text=!audioMode?L.T("Text_257A9A6187"):audio is null?L.T("Text_AB8B184DA5"):
+            audio.Message.ToString()+(audio.Ready?L.T("Text_C0EC54C490"):L.T("Text_4E6CD5A10A"));
+        StateText.Text=s.State.StartsWith("Driving",StringComparison.Ordinal)?L.T("Text_4111B35AC8"):
+            s.State.StartsWith("DeviceReady",StringComparison.Ordinal)?L.T("Text_8806BBDB31"):
+            s.State.StartsWith("Stale",StringComparison.Ordinal)?L.T("Text_B9FEF476FB"):
+            s.State is "Paused"?L.T("Text_8B4A2DC9BC"):s.State is "NotDriving"?L.T("Text_47A30715F8"):
+            s.State is "WaitingForLMU"?L.T("Text_84CD590732"):s.State is "Disconnected"?L.T("Text_A57E81278D"):L.T("Text_F56BC3AACE").TrimEnd('：',':',' ');
+        DeviceChip.Text=s.DeviceConnected?L.T("Text_72C4E3AC4E"):L.T("Text_72DB8F979F");
+        CarText.Text=f is null?L.T("Text_792FC92035"):$"{f.VehicleModel}  /  {f.VehicleClass}  ·  {f.SpeedMps*3.6:F0} km/h  ·  {f.Rpm:F0} RPM";
+        ConnectionText.Text=L.F("Text_05C9B0983F", s.TelemetryHz, s.OutputHz)+(audioMode?(audio?.Ready==true?L.T("Text_099486EC27"):L.T("Text_D6ED44A7CD")):L.T("Text_5F29C1B9C3"));
+        ErrorText.Text=s.Error.ToString();ErrorBanner.Visibility=s.Error.IsEmpty?Visibility.Collapsed:Visibility.Visible;
+        ValidationText.Text=L.F("Text_51318070A7", s.Telemetry, s.Device, s.ParameterSource, s.LearningState);
         int brake=EncodedPeak(s.Output.LeftTrigger),throttle=EncodedPeak(s.Output.RightTrigger);
-        BrakeOutputText.Text=brake==0?"释放":(s.LeftTriggerSource switch{"Abs"=>"ABS 脉冲","AbsWall"=>"ABS 阻力墙","BrakeReference"=>"临界位置参考","BrakeLimit"=>"接近抱死","LockPulse"=>"抱死脉冲","Lock"=>"抱死提醒",_=>"基础阻力"})+$" · {brake} / 8";
-        ThrottleOutputText.Text=throttle==0?"自由行程":s.RightTriggerSource=="Tc"?$"TC · {throttle} / 8":$"{throttle} / 8";
+        BrakeOutputText.Text=brake==0?L.T("Text_CC3D94550A"):(s.LeftTriggerSource switch{"Abs"=>L.T("Text_EE10564D7F"),"AbsWall"=>L.T("Text_21C48842AD"),"BrakeReference"=>L.T("Text_622833CF92"),"BrakeLimit"=>L.T("Text_06E88B07D7"),"LockPulse"=>L.T("Text_426B82E3A3"),"Lock"=>L.T("Text_D4C258D6B9"),_=>L.T("Text_8A81F759D3")})+$" · {brake} / 8";
+        ThrottleOutputText.Text=throttle==0?L.T("Text_39A65126C1"):s.RightTriggerSource=="Tc"?$"TC · {throttle} / 8":$"{throttle} / 8";
         BrakeMeter.Value=brake;ThrottleMeter.Value=throttle;
         LeftGripMeter.Maximum=RightGripMeter.Maximum=audioMode?1:255;
         if(audioMode)
         {
             var levels=audio?.Levels??default;
-            LeftGripText.Text=audio?.Ready==true?$"{levels.LeftRms*100:F1}%":"音圈未就绪";
-            RightGripText.Text=audio?.Ready==true?$"{levels.RightRms*100:F1}%":"音圈未就绪";
+            LeftGripText.Text=audio?.Ready==true?$"{levels.LeftRms*100:F1}%":L.T("Text_D6ED44A7CD");
+            RightGripText.Text=audio?.Ready==true?$"{levels.RightRms*100:F1}%":L.T("Text_D6ED44A7CD");
             LeftGripMeter.Value=levels.LeftRms;RightGripMeter.Value=levels.RightRms;
         }
         else
@@ -263,67 +264,67 @@ public partial class MainWindow:Window
             var feature=(Feature)typeof(Profile).GetProperty(key)!.GetValue(outputProfile)!;
             double level=(double)typeof(ChannelLevels).GetProperty(key)!.GetValue(s.Channels)!;
             bool bypass=trigger&&outputProfile.ThrottleMode==ThrottleFeedbackMode.TcOnly&&(key is "ThrottleBase" or "Wheelspin" or "Redline" or "Shift");
-            pair.Value.Text=bypass?"此模式不输出":feature.Gain==0?"已关闭":!s.AdvancedFeedbackEnabled?"等待驾驶":
-                level>.001?$"效果 {level*100:F0}%":"待触发";
+            pair.Value.Text=bypass?L.T("Text_83D65B3DA3"):feature.Gain==0?L.T("Text_6744B4C6A9"):!s.AdvancedFeedbackEnabled?L.T("Text_8475E45FAD"):
+                level>.001?L.F("Text_C20B538FE6", level*100):L.T("Text_BCFC25B291");
         }
         EventsText.Text=$"L2 [{s.LeftTriggerSource}] 0x{s.Output.LeftTrigger.Mode:X2}  /  R2 [{s.RightTriggerSource}] 0x{s.Output.RightTrigger.Mode:X2}\n"+
-            $"ABS {s.Abs:F2}  抱死 {s.Lock:F2}  TC原始 {(f?.TcIntervening==true?1:0)}  TC包络 {s.Tc:F2}  空转 {s.Spin:F2}\n"+
-            $"路面 L {s.Layers.RoadL:F2} R {s.Layers.RoadR:F2}  /  路肩 L {s.Layers.KerbL:F2} R {s.Layers.KerbR:F2}\n"+
-            $"滑移 L {s.Layers.SlipL:F2} R {s.Layers.SlipR:F2}  /  碰撞 {Math.Max(s.Layers.ImpactL,s.Layers.ImpactR):F2}";
-        WheelsText.Text=s.WheelDiagnostics+(f is null?"":"\n"+string.Join("\n",f.Wheels.Select((w,i)=>
-            $"{new[]{"FL","FR","RL","RR"}[i]} surface={w.SurfaceType?.ToString()??"未知"} terrain={w.TerrainName} kerb={w.IsKerb} susp={w.SuspDeflectionM:F4}m tireCompression={w.TireVerticalDeflectionM*1000:F2}mm load={w.TireLoadN:F0}N")));
-        PerformanceText.Text=$"间隔 P50/P95/P99：{s.IntervalP50:F2}/{s.IntervalP95:F2}/{s.IntervalP99:F2} ms\n"+
-            $"快照→写入 P50/P95：{s.LatencyP50:F2}/{s.LatencyP95:F2} ms\n"+
-            $"CPU {s.CpuPercent:F2}%  ·  分配 {s.AllocatedMBPerSecond:F2} MB/s  ·  内存 {s.WorkingSet/1048576.0:F1} MB\n"+
-            $"音频设备：{audio?.EndpointId??"未连接"}\n音频格式：{audio?.Format??"未连接"}\n音频缓冲：{audio?.BufferMilliseconds??0:F1} ms · 已提交 {audio?.SubmittedFrames??0} 帧\n音频 L/R 峰值：{audio?.Levels.LeftPeak??0:F3}/{audio?.Levels.RightPeak??0:F3}\n"+
-            $"录制丢帧 {s.Dropped}  ·  {runtime.RecordingPath??"未录制"}";
+            L.F("Text_DBD0BCFB43", s.Abs, s.Lock, (f?.TcIntervening==true?1:0), s.Tc, s.Spin)+
+            L.F("Text_FBAF7B99F3", s.Layers.RoadL, s.Layers.RoadR, s.Layers.KerbL, s.Layers.KerbR)+
+            L.F("Text_E6F0B0A703", s.Layers.SlipL, s.Layers.SlipR, Math.Max(s.Layers.ImpactL,s.Layers.ImpactR));
+        WheelsText.Text=s.WheelDiagnostics.ToString()+(f is null?"":"\n"+string.Join("\n",f.Wheels.Select((w,i)=>
+            $"{new[]{"FL","FR","RL","RR"}[i]} surface={w.SurfaceType?.ToString()??L.T("Text_4D8C1C5B42")} terrain={w.TerrainName} kerb={w.IsKerb} susp={w.SuspDeflectionM:F4}m tireCompression={w.TireVerticalDeflectionM*1000:F2}mm load={w.TireLoadN:F0}N")));
+        PerformanceText.Text=L.F("Text_A62E19D69B", s.IntervalP50, s.IntervalP95, s.IntervalP99)+
+            L.F("Text_7487E02B87", s.LatencyP50, s.LatencyP95)+
+            L.F("Text_55C2FCD0CE", s.CpuPercent, s.AllocatedMBPerSecond, s.WorkingSet/1048576.0)+
+            L.F("Text_EAEDBCA1EE", audio?.EndpointId??L.T("Text_3D52574CE1"), audio?.Format??L.T("Text_3D52574CE1"), audio?.BufferMilliseconds??0, audio?.SubmittedFrames??0, audio?.Levels.LeftPeak??0, audio?.Levels.RightPeak??0)+
+            L.F("Text_E419ABA548", s.Dropped, runtime.RecordingPath??L.T("Text_B5FFAC63F7"));
         DeviceTestsPanel.IsEnabled=f is not {Driving:true};
     }
     private void DeviceTestClick(object sender,RoutedEventArgs e)
-    {try{runtime.RequestDeviceTest((string)((Button)sender).Tag);Notify("手柄检查已开始，1 秒后自动停止。");}catch(Exception ex){Notify(ex.Message);}}
+    {try{runtime.RequestDeviceTest((string)((Button)sender).Tag);Notify(L.T("Text_0CB4031CEE"));}catch(Exception ex){Notify(L.Error(ex).ToString());}}
     private void SaveClick(object sender,RoutedEventArgs e)
-    {try{ProfileStore.Save(runtime.Profile);Notify("配置已保存。已有配置会在同一目录保留备份。");}catch(Exception ex){Notify("保存失败："+ex.Message);}}
+    {try{ProfileStore.Save(runtime.Profile);Notify(L.T("Text_3516103F18"));}catch(Exception ex){Notify(L.T("Text_6ADE7BAF87")+L.Error(ex).ToString());}}
     private void ResetClick(object sender,RoutedEventArgs e)
     {
-        if(runtime.RecordingPath is not null){Notify("请先停止录制，再恢复参数。");return;}
-        if(MessageBox.Show(this,"恢复全部反馈默认值？当前未保存的强度修改会丢失；已导入的车型预设会保留，车辆专属扳机配置会删除。","恢复默认值",MessageBoxButton.OKCancel,MessageBoxImage.Question)!=MessageBoxResult.OK)return;
+        if(runtime.RecordingPath is not null){Notify(L.T("Text_7F8FE36E97"));return;}
+        if(!Confirm(L.T("Text_83F291A836"),L.T("Text_F242C94797")))return;
         runtime.SetProfile(new(){VehiclePresets=runtime.Profile.VehiclePresets,RightGain=runtime.Profile.RightGain,UiTheme=runtime.Profile.UiTheme});
         RefreshTriggerScopes(true);ChangedNotice();
     }
     private async void RecordClick(object sender,RoutedEventArgs e)
     {
-        try{if(runtime.RecordingPath is null){runtime.StartRecording();Notify("正在记录驾驶数据；停止记录后可调整设置。");}else{await runtime.StopRecording();Notify("驾驶数据记录已停止，可点击“打开日志文件夹”查看。");}}
-        catch(Exception ex){Notify("录制失败："+ex.Message);}
+        try{if(runtime.RecordingPath is null){runtime.StartRecording();Notify(L.T("Text_DD5F98657D"));}else{await runtime.StopRecording();Notify(L.T("Text_E6E4261954"));}}
+        catch(Exception ex){Notify(L.T("Text_137F1AF36C")+L.Error(ex).ToString());}
     }
     private void ImportPresetClick(object sender,RoutedEventArgs e)
     {
         try
         {
-            if(runtime.RecordingPath is not null)throw new InvalidOperationException("请先停止录制");
-            var dialog=new Microsoft.Win32.OpenFileDialog{Filter="车型预设 JSON|*.json"};if(dialog.ShowDialog()!=true)return;
+            if(runtime.RecordingPath is not null)throw L.InvalidOperation(L.M("Text_B6C1C4CF80"));
+            var dialog=new Microsoft.Win32.OpenFileDialog{Filter=L.T("Text_B9A75A6A70")};if(dialog.ShowDialog()!=true)return;
             var preset=ProfileStore.LoadPreset(dialog.FileName);
             var presets=runtime.Profile.VehiclePresets.Where(v=>!(v.GameVersion==preset.GameVersion&&v.VehicleModel==preset.VehicleModel&&v.VehicleClass==preset.VehicleClass)).Append(preset).ToImmutableArray();
             var profile=runtime.Profile with{VehiclePresets=presets};ProfileStore.Save(profile);runtime.SetProfile(profile);
-            Notify(preset.Verified?"车型预设已导入；版本、车型和类别匹配时自动启用。":"车型模板已保存；需完成参数验证并在模板中标记后才会启用。");
+            Notify(preset.Verified?L.T("Text_922E914F31"):L.T("Text_D923F7EBF6"));
         }
-        catch(Exception ex){Notify(ex.Message);}
+        catch(Exception ex){Notify(L.Error(ex).ToString());}
     }
     private void ExportPresetClick(object sender,RoutedEventArgs e)
     {
         try
         {
-            var frame=runtime.Current.Frame??throw new InvalidOperationException("读取到 LMU 车辆后再导出车型参数");
+            var frame=runtime.Current.Frame??throw L.InvalidOperation(L.M("Text_17B187FA8C"));
             var current=runtime.Profile.VehiclePresets.FirstOrDefault(v=>v.Matches(frame));
             var preset=new VehiclePreset(frame.GameVersion,frame.VehicleModel,frame.VehicleClass,false,"",current?.Parameters??runtime.Profile.DefaultParameters);
-            var dialog=new Microsoft.Win32.SaveFileDialog{Filter="车型预设 JSON|*.json",FileName="vehicle-preset.json"};
-            if(dialog.ShowDialog()==true){File.WriteAllText(dialog.FileName,System.Text.Json.JsonSerializer.Serialize(preset,ProfileStore.Json));Notify("车型模板已导出，可用于填写和分享该车型的参数。");}
+            var dialog=new Microsoft.Win32.SaveFileDialog{Filter=L.T("Text_B9A75A6A70"),FileName="vehicle-preset.json"};
+            if(dialog.ShowDialog()==true){File.WriteAllText(dialog.FileName,System.Text.Json.JsonSerializer.Serialize(preset,ProfileStore.Json));Notify(L.T("Text_50F5845281"));}
         }
-        catch(Exception ex){Notify(ex.Message);}
+        catch(Exception ex){Notify(L.Error(ex).ToString());}
     }
     private void LogsClick(object sender,RoutedEventArgs e)
     {
         try{string path=Path.Combine(ProfileStore.DirectoryPath,"logs");Directory.CreateDirectory(path);Process.Start(new ProcessStartInfo(path){UseShellExecute=true});}
-        catch(Exception ex){Notify(ex.Message);}
+        catch(Exception ex){Notify(L.Error(ex).ToString());}
     }
     public void FatalShutdown(string message){Notify(message);Close();}
     public void EmergencyStop()=>runtime.EmergencyStop();

@@ -24,7 +24,7 @@ public sealed class BrakeSignalEngine
     public double MaxSlipRate { get; private set; }
     public double? AbsOnsetBrake { get; private set; }
     public double AbsWall { get; private set; }
-    public string Evidence { get; private set; } = "等待驾驶";
+    public UiText Evidence { get; private set; } = L.M("Text_8475E45FAD");
 
     public static BrakeFeedbackMode ResolveMode(TelemetryFrame f, Profile p) =>
         p.BrakeMode != BrakeFeedbackMode.Auto ? p.BrakeMode :
@@ -38,7 +38,7 @@ public sealed class BrakeSignalEngine
         WarningActive=LockActive=false;
         Risk = LockSeverity = FrontRisk = RearRisk = MaxSlip = MaxSlipRate = AbsWall = 0;
         AbsOnsetBrake = null; previousMode = null;
-        Mode = BrakeFeedbackMode.Auto; Evidence = "等待驾驶";
+        Mode = BrakeFeedbackMode.Auto; Evidence = L.M("Text_8475E45FAD");
     }
 
     public void Update(TelemetryFrame f, TelemetryFrame? previous,
@@ -113,8 +113,8 @@ public sealed class BrakeSignalEngine
             Risk = Mode == BrakeFeedbackMode.NoAbs ? Math.Max(FrontRisk, RearRisk) : 0;
             LockSeverity = Mode == BrakeFeedbackMode.NoAbs ? Env(LockSeverity, lockTarget, step, c.AttackSeconds, c.ReleaseSeconds) : 0;
         }
-        Evidence = Mode == BrakeFeedbackMode.Auto ? "ABS 状态未知，请选择刹车模式" :
-            Mode == BrakeFeedbackMode.Abs ? "GT3 旧版 / 手动 ABS" :
-            ($"接触区滑移有效 {ValidSlipWheels}/4 · 提示 {(LockActive?"抱死脉冲":WarningActive?"临界脉冲":"无")}")+" · "+Budget.Evidence;
+        Evidence = Mode == BrakeFeedbackMode.Auto ? L.M("Text_DE155D2259") :
+            Mode == BrakeFeedbackMode.Abs ? L.M("Text_AA3F6AD6F8") :
+            (L.M("Text_A2B4B21F17", ValidSlipWheels, (LockActive?L.M("Text_426B82E3A3"):WarningActive?L.M("Text_20E7B42138"):L.M("Text_484D556139"))))+" · "+Budget.Evidence;
     }
 }

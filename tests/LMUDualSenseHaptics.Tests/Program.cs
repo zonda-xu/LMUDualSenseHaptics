@@ -161,7 +161,7 @@ Check("default parameters enable L2 and engine while R2 is free",()=>
     var loop=new FeedbackLoop();var output=loop.Tick(Frame(0,0),0,new Profile());
     Assert(output.LeftTrigger.Mode==0x21&&output.RightTrigger.Mode==5);
     Assert(output.LeftActuator>0||output.RightActuator>0);
-    Assert(loop.AdvancedFeedbackEnabled&&loop.ParameterSource.Contains("默认初始参数"));
+    Assert(loop.AdvancedFeedbackEnabled&&loop.ParameterSource.ToString().Contains("默认初始参数"));
     Assert(loop.Layers.RoadL==0&&loop.Layers.SlipL==0&&loop.Layers.ImpactL==0);
 });
 Check("legacy parameters keep redline and upshift events",()=>
@@ -182,7 +182,7 @@ Check("unverified or mismatched preset selects working default parameters",()=>
         for(int n=0;n<151;n++)loop.Tick(Frame(n,n*.01),n*.01,profile);
         var f=Frame(152,1.52) with{Wheels=Frame(152,1.52).Wheels.Select((w,i)=>i==1?w with{SuspDeflectionM=.03f,SuspForceN=7000,TireLoadN=7000}:w).ToImmutableArray()};
         var output=loop.Tick(f,1.52,profile);
-        Assert(loop.AdvancedFeedbackEnabled&&loop.ParameterSource.Contains("默认初始参数")&&loop.Layers.RoadR>0&&output.RightActuator>output.LeftActuator);
+        Assert(loop.AdvancedFeedbackEnabled&&loop.ParameterSource.ToString().Contains("默认初始参数")&&loop.Layers.RoadR>0&&output.RightActuator>output.LeftActuator);
     }
 });
 Check("matching vehicle preset has priority and switching clears history",()=>
@@ -190,8 +190,8 @@ Check("matching vehicle preset has priority and switching clears history",()=>
     var loop=new FeedbackLoop();var profile=p with{VehiclePresets=[preset]};
     loop.Tick(Frame(0,0),0,profile);
     var f=Frame(1,.01) with{Wheels=Frame(1,.01).Wheels.Select(w=>w with{SuspDeflectionM=.03f,SuspForceN=7000,TireLoadN=7000}).ToImmutableArray()};
-    loop.Tick(f,.01,profile);Assert(loop.ParameterSource.Contains("已验证车型预设")&&loop.Layers.RoadL==0);
-    loop.Tick(f,.014,p);Assert(loop.ParameterSource.Contains("默认初始参数")&&loop.Layers.RoadL==0);
+    loop.Tick(f,.01,profile);Assert(loop.ParameterSource.ToString().Contains("已验证车型预设")&&loop.Layers.RoadL==0);
+    loop.Tick(f,.014,p);Assert(loop.ParameterSource.ToString().Contains("默认初始参数")&&loop.Layers.RoadL==0);
     f=Frame(2,.02) with{AccelX=40,LastImpactTime=.02f,LastImpactMagnitude=10};
     loop.Tick(f,.02,p);Assert(loop.Signals.Impact>0);
     loop.Tick(f,.024,profile);Assert(loop.Signals.Impact==0&&loop.Layers.ImpactL==0);
@@ -211,7 +211,7 @@ Check("USB write failure alone closes and schedules reconnect",()=>
     int opens=0;var first=new FakeHidDevice{Fail=true};var second=new FakeHidDevice();
     using var session=new HidOutputSession(()=>++opens==1?first:second);
     session.EnsureConnected(0);Assert(!session.TryWrite(FeedbackFrame.Off,0));
-    Assert(!session.Connected&&first.Disposals==1&&session.LastError.Contains("1167"));
+    Assert(!session.Connected&&first.Disposals==1&&session.LastError.ToString().Contains("1167"));
     session.EnsureConnected(.999);Assert(opens==1);session.EnsureConnected(1);Assert(opens==2&&session.Connected);
     Assert(session.TryWrite(FeedbackFrame.Off,1)&&second.Disposals==0&&session.LastError=="");
 });
@@ -385,6 +385,7 @@ Brake122Tests.Run(Check);
 Brake13Tests.Run(Check);
 VehicleTriggerTests.Run(Check);
 Revision15Tests.Run(Check);
+LocalizationTests.Run(Check);
 Console.WriteLine($"RESULT {passed} passed, {failed} failed (synthetic, sanitized recorded fields and fake HID; no hardware claims)");
 Environment.ExitCode=failed==0?0:1;
 

@@ -4,6 +4,11 @@ $testRoot = Join-Path ([System.IO.Path]::GetTempPath()) ('LMU 解压 测试 ' + 
 $launcher = $null
 $child = $null
 $started = Get-Date
+$languagePath = Join-Path $env:LOCALAPPDATA 'LMUDualSenseHaptics/ui-language.txt'
+$hadLanguage = Test-Path $languagePath
+$oldLanguage = if ($hadLanguage) { [IO.File]::ReadAllBytes($languagePath) } else { $null }
+New-Item -ItemType Directory -Force (Split-Path $languagePath) | Out-Null
+[IO.File]::WriteAllText($languagePath, 'zh-CN', [Text.Encoding]::ASCII)
 try {
     Expand-Archive -LiteralPath $Archive -DestinationPath $testRoot
     $rootFiles = @(Get-ChildItem $testRoot -File)
@@ -29,6 +34,84 @@ try {
     Add-Type -AssemblyName UIAutomationTypes
     $window = [System.Windows.Automation.AutomationElement]::FromHandle($child.MainWindowHandle)
     $scope = [System.Windows.Automation.TreeScope]::Descendants
+    function Find-Id([string]$id) {
+        $condition = [System.Windows.Automation.PropertyCondition]::new([System.Windows.Automation.AutomationElement]::AutomationIdProperty, $id)
+        $element = $window.FindFirst($scope, $condition)
+        if (-not $element) { throw "Control not found: $id" }
+        return $element
+    }
+    function Find-Name([string]$name) {
+        $condition = [System.Windows.Automation.PropertyCondition]::new([System.Windows.Automation.AutomationElement]::NameProperty, $name)
+        $element = $window.FindFirst($scope, $condition)
+        if (-not $element) { throw "Localized control not found: $name" }
+        return $element
+    }
+    function Select-Language([string]$name) {
+        $combo = Find-Id 'LanguageChoice'
+        $combo.GetCurrentPattern([System.Windows.Automation.ExpandCollapsePattern]::Pattern).Expand()
+        Start-Sleep -Milliseconds 150
+        $condition = [System.Windows.Automation.AndCondition]::new(
+            [System.Windows.Automation.PropertyCondition]::new([System.Windows.Automation.AutomationElement]::NameProperty, $name),
+            [System.Windows.Automation.PropertyCondition]::new([System.Windows.Automation.AutomationElement]::ControlTypeProperty, [System.Windows.Automation.ControlType]::ListItem))
+        $item = [System.Windows.Automation.AutomationElement]::RootElement.FindFirst($scope, $condition)
+        if (-not $item) { throw "Language item not found: $name" }
+        $item.GetCurrentPattern([System.Windows.Automation.SelectionItemPattern]::Pattern).Select()
+        $combo.GetCurrentPattern([System.Windows.Automation.ExpandCollapsePattern]::Pattern).Collapse()
+        Start-Sleep -Milliseconds 250
+    }
+    function Wait-Dialog([string]$title) {
+        $condition = [System.Windows.Automation.AndCondition]::new(
+            [System.Windows.Automation.PropertyCondition]::new([System.Windows.Automation.AutomationElement]::NameProperty, $title),
+            [System.Windows.Automation.PropertyCondition]::new([System.Windows.Automation.AutomationElement]::ControlTypeProperty, [System.Windows.Automation.ControlType]::Window))
+        $deadline = [DateTime]::UtcNow.AddSeconds(10)
+        do {
+            $dialog = [System.Windows.Automation.AutomationElement]::RootElement.FindFirst($scope, $condition)
+            if ($dialog) { return $dialog }
+            Start-Sleep -Milliseconds 100
+        } while ([DateTime]::UtcNow -lt $deadline)
+        throw "Localized dialog did not open: $title"
+    }
+    $codes = @('en','fr','es','ru','ar','zh-CN')
+    $names = @('English','Français','Español','Русский','العربية','中文')
+    for ($i=0; $i -lt $codes.Count; $i++) {
+        $code = $codes[$i]
+        $catalog = Get-Content (Join-Path $PSScriptRoot "../src/LMUDualSenseHaptics/Localization/$code.json") -Raw -Encoding UTF8 | ConvertFrom-Json -AsHashtable
+        Select-Language $names[$i]
+        if ((Get-Content $languagePath -Raw) -ne $code) { throw 'Language preference was not persisted.' }
+        $import = Find-Id 'ImportVehicleButton'
+        if ($import.Current.Name -ne $catalog['Text_340152EE2E']) { throw 'Static button language did not update.' }
+        $null = Find-Name $catalog['Text_E9DFBBC15A']
+        $null = Find-Name $catalog['Text_3E0454700A']
+        # Physical left/right and L2/R2 meters must not exchange places in Arabic.
+        $left = Find-Id 'BrakeMeter'; $right = Find-Id 'ThrottleMeter'
+        if ($left.Current.BoundingRectangle.X -ge $right.Current.BoundingRectangle.X) { throw 'Physical trigger order reversed.' }
+        $culture = [Globalization.CultureInfo]::GetCultureInfo($code).LCID
+        if ($import.Current.Culture -ne $culture) { throw "Wrong UI language metadata: $code" }
+        $import.GetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern).Invoke()
+        $dialog = Wait-Dialog $catalog['Text_96618B11E9']
+        $dialog.GetCurrentPattern([System.Windows.Automation.WindowPattern]::Pattern).Close()
+        Start-Sleep -Milliseconds 150
+        # Visit every tab and open the app-owned confirmation without changing settings.
+        $tab = Find-Name $catalog['Text_3F33F2BC25']
+        $tab.GetCurrentPattern([System.Windows.Automation.SelectionItemPattern]::Pattern).Select()
+        $tabCondition = [System.Windows.Automation.PropertyCondition]::new([System.Windows.Automation.AutomationElement]::ControlTypeProperty, [System.Windows.Automation.ControlType]::TabItem)
+        $tabs = (Find-Id 'SettingsTabs').FindAll($scope, $tabCondition)
+        foreach ($t in $tabs) {
+            $t.GetCurrentPattern([System.Windows.Automation.SelectionItemPattern]::Pattern).Select()
+            Start-Sleep -Milliseconds 100
+            if ($t.Current.BoundingRectangle.Width -le 0) { throw 'Invisible translated tab.' }
+        }
+        (Find-Id 'ResetDefaultsButton').GetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern).Invoke()
+        $dialog = Wait-Dialog $catalog['Text_F242C94797]
+        foreach ($pair in @(@('ConfirmAccept','Text_FAC2A67AD8'),@('ConfirmCancel','Text_2CD0F3BE87'))) {
+            $condition = [System.Windows.Automation.PropertyCondition]::new([System.Windows.Automation.AutomationElement]::AutomationIdProperty, $pair[0])
+            $button = $dialog.FindFirst($scope, $condition)
+            if (-not $button -or $button.Current.Name -ne $catalog[$pair[1]]) { throw 'Confirmation action was not translated.' }
+            if ($pair[0] -eq 'ConfirmCancel') { $button.GetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern).Invoke() }
+        }
+        $tabs[0].GetCurrentPattern([System.Windows.Automation.SelectionItemPattern]::Pattern).Select()
+        Write-Host "LANGUAGE UI PASS: $code, dynamic controls, tabs, file dialog, confirmation, physical trigger order, persistence."
+    }
     foreach ($theme in @('浅色','深色')) {
         if ($theme -eq '深色') {
             $condition = [System.Windows.Automation.PropertyCondition]::new([System.Windows.Automation.AutomationElement]::NameProperty, '深色外观')
@@ -76,5 +159,6 @@ try {
 } finally {
     if ($child -and -not $child.HasExited) { Stop-Process -Id $child.Id -Force }
     if ($launcher -and -not $launcher.HasExited) { Stop-Process -Id $launcher.Id -Force }
+    if ($hadLanguage) { [IO.File]::WriteAllBytes($languagePath, $oldLanguage) } elseif (Test-Path $languagePath) { Remove-Item $languagePath }
     if (Test-Path $testRoot) { Remove-Item $testRoot -Recurse -Force }
 }

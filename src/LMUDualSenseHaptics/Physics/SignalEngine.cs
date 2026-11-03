@@ -19,7 +19,7 @@ public sealed class SignalEngine
     public double LegacyLock;
     public double Abs,Lock,Tc,Spin,Shift,Redline,SidePan,FrontShare,LeftRoad,RightRoad,Impact,ImpactPan,Scrape;
     public double ShiftStart=double.NegativeInfinity,ImpactStart=double.NegativeInfinity;
-    public string LearningState {get;private set;}="等待新物理帧";
+    public UiText LearningState {get;private set;}=L.M("Text_4DEF775213");
     private double cooldown,lastImpactTime,pendingImpactUntil=double.NegativeInfinity,lastImpactObserved=double.NegativeInfinity;
     private TelemetryFrame? previous;
     private readonly Queue<(double T,Vector2 V)> velocityHistory=new();
@@ -29,7 +29,7 @@ public sealed class SignalEngine
         Wheels=Enumerable.Range(0,4).Select(_=>new WheelState()).ToArray();
         LegacyLock=Abs=Lock=Tc=Spin=Shift=Redline=SidePan=FrontShare=LeftRoad=RightRoad=Impact=ImpactPan=Scrape=0;
         ShiftStart=ImpactStart=pendingImpactUntil=lastImpactObserved=double.NegativeInfinity;
-        cooldown=lastImpactTime=0;previous=null;velocityHistory.Clear();LearningState="等待新物理帧";
+        cooldown=lastImpactTime=0;previous=null;velocityHistory.Clear();LearningState=L.M("Text_4DEF775213");
     }
     public void Update(TelemetryFrame f,Profile p,FeedbackParameters? parameters=null)
     {
@@ -83,7 +83,7 @@ public sealed class SignalEngine
             if(z.RadiusTime>=c.RadiusTrustedSeconds&&Math.Abs(candidates[i]/z.Radius-1)>c.RadiusDriftTolerance)consistent=false;
         }
         bool learn=stable&&consistent;
-        LearningState=learn?"可信直线滚动：正在学习半径与正常路面":"学习冻结：低速、操控/动力变化、轮速不一致或异常路面";
+        LearningState=learn?L.M("Text_0576CF3A83"):L.M("Text_027927DB63");
         for(int i=0;i<4;i++)
         {
             var q=f.Wheels[i];var z=Wheels[i];z.Learning=learn;

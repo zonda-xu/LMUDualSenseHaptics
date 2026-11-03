@@ -8,8 +8,8 @@ public sealed class RoadWheelState
     public double SuspensionVelocity, WheelVelocity, TireVelocity, LoadRate;
     public double InferredKerb { get; internal set; }
     public bool Contact { get; internal set; }
-    public string ContactEvidence { get; internal set; } = "等待遥测";
-    public string Source { get; internal set; } = "等待遥测";
+    public UiText ContactEvidence { get; internal set; } = L.M("Text_580A562EB7");
+    public UiText Source { get; internal set; } = L.M("Text_580A562EB7");
     public double Combined => Math.Max(Math.Max(Texture, Bump), Kerb);
     internal double SlowSuspension, SlowWheel, SlowTire, SlowLoad;
     internal double Reversals, LastDirectionTime;
@@ -95,9 +95,9 @@ public sealed class RoadSignalEngine
             z.KerbHz = Math.Clamp(f.SpeedMps / c.KerbSpacingM, 12, 48);
             z.KerbPhase = (z.KerbPhase + z.KerbHz * dt) % 1;
             if (!contacts[i] || moving == 0) z.Texture = z.Bump = z.Kerb = z.InferredKerb = 0;
-            z.Source = !contacts[i] ? "离地 / 无接触" : moving == 0 ? "静止" :
-                w.IsKerb ? "路肩标记" : z.InferredKerb > .02 ? "路肩样动态（推断）" :
-                z.Texture > .01 ? "悬架 / 轮胎动态" : w.SurfaceType is null ? "类型未知 / 当前平顺" : "普通路面 / 当前平顺";
+            z.Source = !contacts[i] ? L.M("Text_B8B9D45E22") : moving == 0 ? L.M("Text_1C4EC47C2A") :
+                w.IsKerb ? L.M("Text_5DE7FF7D27") : z.InferredKerb > .02 ? L.M("Text_4AD43A1F8F") :
+                z.Texture > .01 ? L.M("Text_EA411327F0") : w.SurfaceType is null ? L.M("Text_C641D02CC2") : L.M("Text_56180D00F7");
         }
         previous = f;
     }

@@ -11,17 +11,17 @@ public sealed class LmuLayout
     public int Version {get;private set;}
     public TelemetryFrame? Parse(byte[] b,double now)
     {
-        if(b.Length!=SnapshotSize)throw new InvalidDataException("共享内存结构长度不匹配");
-        Version=I(b,64);if(Version<=0)throw new InvalidDataException("LMU gameVersion 无效");
+        if(b.Length!=SnapshotSize)throw L.InvalidData(L.M("Text_994C74060D"));
+        Version=I(b,64);if(Version<=0)throw L.InvalidData(L.M("Text_80278947CE"));
         int count=b[TelemetryOffset],index=b[TelemetryOffset+1];
-        if(count>104)throw new InvalidDataException("车辆数超出布局");
+        if(count>104)throw L.InvalidData(L.M("Text_C429B6F873"));
         if(!B(b,TelemetryOffset+2)){previousTime=double.NaN;previousCar="";previousDriving=previousPaused=null;return null;}
-        if(index>=count)throw new InvalidDataException("玩家遥测索引无效");
+        if(index>=count)throw L.InvalidData(L.M("Text_231C889606"));
         int v=TelemetryOffset+4+index*VehicleSize,slot=I(b,v),scount=I(b,ScoringOffset+104);
-        if(scount is < 0 or >104)throw new InvalidDataException("Scoring 车辆数非法");
+        if(scount is < 0 or >104)throw L.InvalidData(L.M("Text_0023816412"));
         int scoring=-1;
-        for(int i=0;i<scount;i++){int q=ScoringOffset+560+i*584;if(I(b,q)==slot&&B(b,q+196)){if(scoring>=0)throw new InvalidDataException("多个玩家车辆记录");scoring=q;}}
-        if(scoring<0)throw new InvalidDataException("无法在 scoring 中核对玩家 slot ID");
+        for(int i=0;i<scount;i++){int q=ScoringOffset+560+i*584;if(I(b,q)==slot&&B(b,q+196)){if(scoring>=0)throw L.InvalidData(L.M("Text_BBD9F60BA5"));scoring=q;}}
+        if(scoring<0)throw L.InvalidData(L.M("Text_58784F69DD"));
         bool paused=b[ScoringOffset+108]==9;
         // LMU 14200 may keep mOptionsLocation at 0 during a realtime session.
         // Use the matched player's scoring state; the UI location is not a driving gate.
@@ -51,8 +51,8 @@ public sealed class LmuLayout
     private static float? Unit(byte[] b,int o) => Optional(b,o) is float x && x is >=0 and <=1 ? x : null;
     private static float? Positive(byte[] b,int o) => Optional(b,o) is float x && x>0 ? x : null;
     private static int I(byte[] b,int o)=>BinaryPrimitives.ReadInt32LittleEndian(b.AsSpan(o,4));
-    private static double D(byte[] b,int o){double x=BitConverter.Int64BitsToDouble(BinaryPrimitives.ReadInt64LittleEndian(b.AsSpan(o,8)));if(!double.IsFinite(x))throw new InvalidDataException($"非有限字段 @{o}");return x;}
-    private static float F(byte[] b,int o){double d=D(b,o);if(d>float.MaxValue||d<-float.MaxValue)throw new InvalidDataException("字段 float 溢出");return (float)d;}
-    private static bool B(byte[] b,int o)=>b[o] switch{0=>false,1=>true,_=>throw new InvalidDataException($"bool 非法 @{o}")};
+    private static double D(byte[] b,int o){double x=BitConverter.Int64BitsToDouble(BinaryPrimitives.ReadInt64LittleEndian(b.AsSpan(o,8)));if(!double.IsFinite(x))throw L.InvalidData(L.M("Text_4DD538D898", o));return x;}
+    private static float F(byte[] b,int o){double d=D(b,o);if(d>float.MaxValue||d<-float.MaxValue)throw L.InvalidData(L.M("Text_2FA8FC9FA0"));return (float)d;}
+    private static bool B(byte[] b,int o)=>b[o] switch{0=>false,1=>true,_=>throw L.InvalidData(L.M("Text_7D964E95DA", o))};
     private static string S(byte[] b,int o,int n){var bytes=b.AsSpan(o,n);int end=bytes.IndexOf((byte)0);return Encoding.UTF8.GetString(end<0?bytes:bytes[..end]);}
 }

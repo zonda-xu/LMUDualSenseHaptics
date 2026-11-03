@@ -1,3 +1,4 @@
+using LMUDualSenseHaptics.Core;
 using System.Windows;
 namespace LMUDualSenseHaptics;
 public partial class App:Application
@@ -6,7 +7,7 @@ public partial class App:Application
     internal static void RegisterEmergencyStop(Action action)=>Volatile.Write(ref emergencyStop,action);
     protected override void OnStartup(StartupEventArgs e)
     {
-        DispatcherUnhandledException+=(_,args)=>{args.Handled=true;if(MainWindow is MainWindow window)window.FatalShutdown("应用异常："+args.Exception.Message);else Shutdown(1);};
+        DispatcherUnhandledException+=(_,args)=>{args.Handled=true;if(MainWindow is MainWindow window)window.FatalShutdown(L.T("Text_F56BC3AACE")+L.Error(args.Exception).ToString());else Shutdown(1);};
         AppDomain.CurrentDomain.ProcessExit+=(_,_)=>{Volatile.Read(ref emergencyStop)?.Invoke();};
         AppDomain.CurrentDomain.UnhandledException+=(_,_)=>{Volatile.Read(ref emergencyStop)?.Invoke();};
         base.OnStartup(e);

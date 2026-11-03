@@ -11,7 +11,7 @@ call "$devcmd" -arch=x64 -host_arch=x64
 if errorlevel 1 exit /b 1
 rc /nologo /fo artifacts\launcher\launcher.res src\Launcher\launcher.rc
 if errorlevel 1 exit /b 1
-cl /nologo /std:c++17 /utf-8 /W4 /WX /O2 /MT /EHsc /DUNICODE /D_UNICODE /Foartifacts\launcher\main.obj /Feartifacts\win-x64\LMUDualSenseHaptics.exe src\Launcher\main.cpp artifacts\launcher\launcher.res user32.lib /link /SUBSYSTEM:WINDOWS /MACHINE:X64 /MANIFEST:NO
+cl /nologo /std:c++17 /utf-8 /W4 /WX /O2 /MT /EHsc /DUNICODE /D_UNICODE /Foartifacts\launcher\main.obj /Feartifacts\win-x64\LMUDualSenseHaptics.exe src\Launcher\main.cpp artifacts\launcher\launcher.res user32.lib shell32.lib ole32.lib /link /SUBSYSTEM:WINDOWS /MACHINE:X64 /MANIFEST:NO
 exit /b %errorlevel%
 "@
 $commands | Set-Content 'artifacts/launcher/build.cmd' -Encoding ASCII

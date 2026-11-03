@@ -1,6 +1,6 @@
 # LMU DualSense Haptics
 
-为 **Le Mans Ultimate（勒芒终极版）** 提供 DualSense USB 自适应扳机和左右握把音圈反馈。当前版本：**v1.5**。界面为中文。
+为 **Le Mans Ultimate（勒芒终极版）** 提供 DualSense USB 自适应扳机和左右握把音圈反馈。当前版本：**v1.6-preview**。界面为中文。
 
 本版基于 **v1.3.9-preview**，支持单车扳机配置分享，并减轻无 ABS 车辆在默认和中等强度下的制动提示。
 
@@ -24,7 +24,7 @@
 
 ## 下载与开始使用
 
-1. 在仓库 **Releases** 页面下载 `LMUDualSenseHaptics-win-x64-v1.5.zip`，完整解压后运行 `LMUDualSenseHaptics.exe`。自包含版本无需另外安装 .NET。
+1. 在仓库 **Releases** 页面下载 `LMUDualSenseHaptics-win-x64-v1.6-preview.zip`，完整解压后运行 `LMUDualSenseHaptics.exe`。自包含版本无需另外安装 .NET。
 2. 用 USB 数据线连接 DualSense。关闭 Steam Input、DSX、DS4Windows 等软件对同一手柄的震动输出。按键映射可按需继续使用；映射软件也可能占用手柄，连接异常时先退出相关软件排查。
 3. 让游戏声音继续通过耳机或音箱播放。不要将 DualSense 设为游戏声音输出设备。
 4. 在“路面与震动”中启用“使用 USB 音圈震动”，选择当前手柄音频设备；通常可使用自动选择。
@@ -57,7 +57,7 @@ Windows 安装 **.NET 8 SDK** 和 **Visual Studio Build Tools（使用 C++ 的�
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build.ps1
 ```
 
-脚本构建 Release、执行 C# 回归测试、发布自包含 Windows x64 应用，并生成 `artifacts/LMUDualSenseHaptics-win-x64-v1.5.zip`。用户无需安装 .NET 或 VC++ 运行时：WPF 程序自包含，启动器静态链接 C++ 运行时。打包脚本还会从含中文和空格的新目录解压启动应用，检查目录结构、Material 下拉框和正常退出。
+脚本构建 Release、执行 C# 回归测试、发布自包含 Windows x64 应用，并生成 `artifacts/LMUDualSenseHaptics-win-x64-v1.6-preview.zip`。用户无需安装 .NET 或 VC++ 运行时：WPF 程序自包含，启动器静态链接 C++ 运行时。打包脚本还会从含中文和空格的新目录解压启动应用，检查目录结构、Material 下拉框和正常退出。
 
 ```powershell
 # 仅运行算法与协议回归测试
@@ -71,3 +71,7 @@ dotnet run --project tests/LMUDualSenseHaptics.Tests -c Release
 项目采用 [MIT License](LICENSE)。部分 USB 协议与扳机代码改编自 Adudumax 的 [ACC-DualSense-Feedback](https://github.com/Adudumax/ACC-DualSense-Feedback)，版权与许可保留在 [第三方声明](THIRD_PARTY_NOTICES.md)。其他接口及设计参考见 [REFERENCES](docs/REFERENCES.md)。
 
 本项目是独立社区工具，与游戏及手柄厂商没有官方关联。
+
+## 界面语言
+
+顶部语言选择器支持中文、English、Français、Español、Русский、العربية，切换后立即生效并独立保存。阿拉伯语使用从右向左的界面；L2/R2、左右握把位置和数值滑块保持物理方向。Windows 文件选择器的系统按钮、设备名称和系统错误遵循 Windows 的语言设置。

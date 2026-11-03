@@ -10,6 +10,6 @@ public static class WheelContact
     public static bool IsGrounded(WheelFrame wheel, double minimumLoadN) =>
         wheel.Valid && float.IsFinite(wheel.TireLoadN) && float.IsFinite(wheel.TireVerticalDeflectionM) &&
         wheel.TireLoadN >= 0 && (wheel.TireLoadN > minimumLoadN || wheel.TireVerticalDeflectionM > MinimumCompressionM);
-    public static string Evidence(WheelFrame wheel, double minimumLoadN) =>
-        !IsGrounded(wheel, minimumLoadN) ? "无接触证据" : wheel.TireLoadN > minimumLoadN ? "轮胎载荷" : "轮胎压缩量";
+    public static UiText Evidence(WheelFrame wheel, double minimumLoadN) =>
+        !IsGrounded(wheel, minimumLoadN) ? L.M("Text_C7C6F8A23E") : wheel.TireLoadN > minimumLoadN ? L.M("Text_959494EC5B") : L.M("Text_2DF868A4C6");
 }

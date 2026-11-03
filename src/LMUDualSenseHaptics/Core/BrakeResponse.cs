@@ -1,3 +1,4 @@
+using LMUDualSenseHaptics.Core;
 namespace LMUDualSenseHaptics.Core;
 
 // Preview starting points, not measured tyre peak-friction slip ratios.
@@ -36,6 +37,6 @@ public sealed record BrakeResponse
             LateralReduction is < 0 or > .5 || MinimumPrompt is < .1 or > .4 ||
             TravelDeadzone is < 0 or > .3 || TravelEnd is < .5 or > 1 ||
             InputExponent is < .25 or > 4)
-            throw new InvalidDataException("刹车预警参数无效：预警、临界、抱死阈值须依次递增。");
+            throw L.InvalidData(L.M("Text_5AF69A6834"));
     }
 }

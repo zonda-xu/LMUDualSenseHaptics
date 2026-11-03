@@ -1,3 +1,4 @@
+using LMUDualSenseHaptics.Core;
 namespace LMUDualSenseHaptics.Core;
 
 // Starting values for USB DualSense voice coils, not measured hardware calibration.
@@ -18,6 +19,6 @@ public sealed record AudioHapticsSettings
         if (EndpointId is null || EndpointId.Length > 2048 || MasterStrength is < 0 or > 100 ||
             RoadFrequencyHz is < 25 or > 180 || KerbFrequencyHz is < 40 or > 220 ||
             BumpFrequencyHz is < 20 or > 100)
-            throw new InvalidDataException("USB 音圈参数超界");
+            throw L.InvalidData(L.M("Text_DC5B4E5B87"));
     }
 }

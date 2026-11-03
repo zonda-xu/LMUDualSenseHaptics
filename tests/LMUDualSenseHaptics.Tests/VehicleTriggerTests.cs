@@ -26,7 +26,7 @@ internal static class VehicleTriggerTests
                 Need(loop.AdvancedFeedbackEnabled,loop.Reason);
                 Need((o.LeftTrigger==TriggerEffect.Off)==(model=="Car A"),"left switch "+model);
                 Need((o.RightTrigger==TriggerEffect.Off)==(model=="Car A"),"right switch "+model);
-                Need(loop.TriggerProfileSource.Contains(model=="Unknown"?"通用":model));
+                Need(loop.TriggerProfileSource.ToString().Contains(model=="Unknown"?"通用":model));
             }
         });
         check("1.3.9 identity ignores casing whitespace session slot and game version",()=>

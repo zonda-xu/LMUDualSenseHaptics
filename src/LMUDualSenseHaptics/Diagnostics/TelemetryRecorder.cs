@@ -7,7 +7,7 @@ namespace LMUDualSenseHaptics.Diagnostics;
 internal sealed class TelemetryRecorder:IAsyncDisposable
 {
     private readonly Channel<object> queue=Channel.CreateBounded<object>(new BoundedChannelOptions(256){SingleReader=true,FullMode=BoundedChannelFullMode.Wait});
-    private readonly Task worker;public long Dropped;public string? Failure;
+    private readonly Task worker;public long Dropped;public UiText? Failure;
     private int stopped;
     public bool Stopped => Volatile.Read(ref stopped) != 0;
     public const long RecordingLimitBytes = 128L * 1024 * 1024;
@@ -28,14 +28,14 @@ internal sealed class TelemetryRecorder:IAsyncDisposable
                     var bytes=System.Text.Encoding.UTF8.GetBytes(JsonSerializer.Serialize(item,ProfileStore.JsonCompact)+"\n");
                     if(written+bytes.Length+end.Length>maximumBytes)
                     {
-                        Failure=$"达到日志大小上限（{maximumBytes/1048576} MiB），已停止写入";
+                        Failure=L.M("Text_C55F17F796", maximumBytes/1048576);
                         Interlocked.Exchange(ref stopped,1);queue.Writer.TryComplete();
                         await output.WriteAsync(end);break;
                     }
                     await output.WriteAsync(bytes);written+=bytes.Length;
                 }
             }
-            catch(Exception e){Failure=e.Message;Interlocked.Exchange(ref stopped,1);queue.Writer.TryComplete();}
+            catch(Exception e){Failure=L.Error(e);Interlocked.Exchange(ref stopped,1);queue.Writer.TryComplete();}
             finally{while(queue.Reader.TryRead(out _)){} }
         });
     }
@@ -55,5 +55,5 @@ internal sealed class LogSampling
     {lock(errorGate){if(message==error&&now-errorAt<10)return false;error=message;errorAt=now;return true;}}
 }
 internal sealed record OutputRecord(string Kind,double At,long Sequence,double SourceCapturedAt,double WriteMilliseconds,bool Success,FeedbackFrame Frame,
-    double Abs,double Lock,double Tc,double Spin,double Shift,double Redline,GripLayers Layers,double PreLeft,double PreRight,double EngineGain,double ContinuousGain,double OppositeGain,long ClippedFrames,string ParameterSource,ChannelLevels Channels,string LeftTriggerSource,string RightTriggerSource,VoiceCoilCommand? AudioCommand=null,bool AudioReady=false,BrakeDiagnostic? Brake=null);
-internal sealed record BrakeDiagnostic(double Prompt,double EstimatedLimit,double Confidence,int IndependentStops,double LoadFactor,double DemandRate,string Context,string Evidence,double Slip,double Risk,int ValidSlipWheels,bool WarningActive,bool LockActive);
+    double Abs,double Lock,double Tc,double Spin,double Shift,double Redline,GripLayers Layers,double PreLeft,double PreRight,double EngineGain,double ContinuousGain,double OppositeGain,long ClippedFrames,UiText ParameterSource,ChannelLevels Channels,string LeftTriggerSource,string RightTriggerSource,VoiceCoilCommand? AudioCommand=null,bool AudioReady=false,BrakeDiagnostic? Brake=null);
+internal sealed record BrakeDiagnostic(double Prompt,double EstimatedLimit,double Confidence,int IndependentStops,double LoadFactor,double DemandRate,string Context,UiText Evidence,double Slip,double Risk,int ValidSlipWheels,bool WarningActive,bool LockActive);

@@ -17,8 +17,8 @@ internal sealed class HidOutputSession(Func<IHidOutputDevice?> open):IDisposable
     public bool Connected=>device is not null;
     public Guid ContainerId=>device?.ContainerId??Guid.Empty;
     public long Generation {get;private set;}
-    public string Label=>device?.Label??"未连接 USB DualSense";
-    public string LastError {get;private set;}="";
+    public UiText Label=>device?.Label??L.M("Text_0BAC633C43");
+    public UiText LastError {get;private set;}="";
     public void EnsureConnected(double now)
     {
         if(device is not null||now<retry)return;
@@ -28,7 +28,7 @@ internal sealed class HidOutputSession(Func<IHidOutputDevice?> open):IDisposable
     {
         if(device is null)return false;
         if(device.TryWrite(frame)){LastError="";return true;}
-        LastError="USB HID 完整报文写入失败，Win32="+device.LastWriteError;
+        LastError=L.M("Text_C26C1DD8A6", device.LastWriteError);
         device.Dispose();device=null;retry=now+1;
         return false;
     }

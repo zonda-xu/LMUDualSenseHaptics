@@ -1,3 +1,4 @@
+using LMUDualSenseHaptics.Core;
 using System.Collections.Immutable;
 namespace LMUDualSenseHaptics.Core;
 
@@ -29,7 +30,7 @@ public sealed record TriggerSettings
     };
     public void Validate()
     {
-        if(BrakeResponse is null)throw new InvalidDataException("扳机制动参数为空");
+        if(BrakeResponse is null)throw L.InvalidData(L.M("Text_1DE8B9BDF7"));
         // Validate through the existing v1.3 contract without recursively validating the collection.
         Apply(new Profile()).Validate();
     }
@@ -46,7 +47,7 @@ public sealed record VehicleTriggerSettings(string VehicleModel,string VehicleCl
     public void Validate()
     {
         if(string.IsNullOrWhiteSpace(VehicleModel)||string.IsNullOrWhiteSpace(VehicleClass)||Settings is null)
-            throw new InvalidDataException("车辆扳机配置缺少车型、类别或设置");
+            throw L.InvalidData(L.M("Text_09C61EB877"));
         Settings.Validate();
     }
 }

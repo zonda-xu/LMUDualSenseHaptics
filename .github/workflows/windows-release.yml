@@ -36,7 +36,9 @@ jobs:
         with:
           python-version: '3.12'
       - name: Static source checks
-        run: python scripts/check-source.py
+        run: |
+          python scripts/check-source.py
+          python scripts/check-localization.py
       - name: Build, test and package
         shell: pwsh
         run: ./scripts/build.ps1
@@ -64,7 +66,7 @@ jobs:
     if: >-
       github.event_name == 'push' &&
       (startsWith(github.ref, 'refs/tags/v') ||
-       (github.ref == 'refs/heads/release/v1.5' && contains(github.event.head_commit.message, '[publish-release]')))
+       (github.ref == 'refs/heads/preview/v1.6' && contains(github.event.head_commit.message, '[publish-preview]')))
     needs: build
     runs-on: ubuntu-latest
     permissions:
@@ -91,4 +93,4 @@ jobs:
           fi
           gh release create "$RELEASE_TAG" release-assets/*.zip release-assets/*.sha256 \
             --title "LMU DualSense Haptics $RELEASE_TAG" \
-            --notes-file docs/RELEASE_NOTES.md "${flags[@]}"
+            --notes "" "${flags[@]}"

@@ -1,3 +1,4 @@
+using LMUDualSenseHaptics.Core;
 using System.Diagnostics;
 using System.Runtime.Versioning;
 using LMUDualSenseHaptics.Hardware;
@@ -6,10 +7,10 @@ using static LMUDualSenseHaptics.Hardware.WasapiNative;
 namespace LMUDualSenseHaptics.Runtime;
 
 internal sealed record AudioRoute(bool Enabled, string EndpointId, Guid HidContainer, long HidGeneration);
-internal sealed record VoiceCoilOutputStatus(bool Ready, string Message, string Error, string EndpointId,
+internal sealed record VoiceCoilOutputStatus(bool Ready, UiText Message, UiText Error, string EndpointId,
     string Format, double BufferMilliseconds, VoiceCoilLevels Levels, long SubmittedFrames)
 {
-    public static VoiceCoilOutputStatus Waiting { get; } = new(false, "等待 USB 音频端点", "", "", "", 0, default, 0);
+    public static VoiceCoilOutputStatus Waiting { get; } = new(false, L.M("Text_A56703236A"), "", "", "", 0, default, 0);
 }
 
 [SupportedOSPlatform("windows")]
@@ -68,17 +69,17 @@ internal sealed class VoiceCoilOutput : IDisposable
                         {
                             var chosen = AudioEndpointSelection.Choose(all, route.EndpointId, route.HidContainer);
                             device = new(chosen); timeouts = 0;
-                            Volatile.Write(ref status, new(true, "USB 音圈已启动 · " + chosen.Name, "", chosen.Id,
+                            Volatile.Write(ref status, new(true, L.M("Text_0FF6572465", chosen.Name), "", chosen.Id,
                                 $"{device.Format.SampleRate} Hz / {device.Format.Bits}-bit / 4 ch · L=3 R=4",
                                 device.BufferMilliseconds, default, 0));
                         }
-                        else Volatile.Write(ref status, VoiceCoilOutputStatus.Waiting with { Message = "音圈未启用或 HID 未连接" });
+                        else Volatile.Write(ref status, VoiceCoilOutputStatus.Waiting with { Message = L.M("Text_D6A87AB28F") });
                     }
                     catch (Exception ex)
                     {
                         device?.Dispose(); device = null; retryAt = now + 2;
                         Volatile.Write(ref status, VoiceCoilOutputStatus.Waiting with
-                        { Message = "音圈未输出（扳机通路独立）", Error = $"{ex.Message} [0x{ex.HResult:X8}]" });
+                        { Message = L.M("Text_AB93E6B3C7"), Error = L.Error(ex)+$" [0x{ex.HResult:X8}]" });
                     }
                 }
                 if (device is null) { WaitHandle.WaitAny([stop, wake], 200); continue; }
@@ -94,18 +95,18 @@ internal sealed class VoiceCoilOutput : IDisposable
                     }
                     int signaled = WaitHandle.WaitAny([stop, wake, device.Event], 100);
                     timeouts = signaled == WaitHandle.WaitTimeout ? timeouts + 1 : 0;
-                    if (timeouts >= 5) throw new TimeoutException("WASAPI 音频事件停止；请检查设备占用或 USB 连接");
+                    if (timeouts >= 5) throw L.Timeout(L.M("Text_F2A8639D52"));
                 }
                 catch (Exception ex)
                 {
                     device.Dispose(); device = null; retryAt = Now + 2;
                     Volatile.Write(ref status, VoiceCoilOutputStatus.Waiting with
-                    { Message = "音圈断开，等待重连", Error = $"{ex.Message} [0x{ex.HResult:X8}]" });
+                    { Message = L.M("Text_7F6E52FDA0"), Error = L.Error(ex)+$" [0x{ex.HResult:X8}]" });
                 }
             }
         }
         catch (Exception ex)
-        { Volatile.Write(ref status, VoiceCoilOutputStatus.Waiting with { Message = "音频线程已停止", Error = ex.Message }); }
+        { Volatile.Write(ref status, VoiceCoilOutputStatus.Waiting with { Message = L.M("Text_CAFB1F8305"), Error = L.Error(ex) }); }
         finally { device?.Dispose(); if (com) CoUninitialize(); }
     }
     public void Dispose()

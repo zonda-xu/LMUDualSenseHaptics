@@ -103,13 +103,13 @@
         <Setter Property="Cursor" Value="Hand"/>
         <Setter Property="FocusVisualStyle" Value="{StaticResource KeyboardFocus}"/>
         <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="CheckBox">
-            <StackPanel x:Name="Root" Orientation="Horizontal" VerticalAlignment="Center">
+            <Grid x:Name="Root" VerticalAlignment="Center"><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                 <Border x:Name="Track" Width="48" Height="28" CornerRadius="14" BorderThickness="1"
                         BorderBrush="{DynamicResource OutlineBrush}" Background="{DynamicResource SurfaceHighBrush}">
                     <Ellipse x:Name="Thumb" Width="20" Height="20" Margin="4,0,0,0" HorizontalAlignment="Left" Fill="{DynamicResource OutlineBrush}"/>
                 </Border>
-                <ContentPresenter Margin="10,0,0,0" VerticalAlignment="Center" RecognizesAccessKey="True"/>
-            </StackPanel>
+                <ContentPresenter Grid.Column="1" Margin="10,0,0,0" VerticalAlignment="Center" RecognizesAccessKey="True"><ContentPresenter.ContentTemplate><DataTemplate><TextBlock Text="{Binding}" TextWrapping="Wrap"/></DataTemplate></ContentPresenter.ContentTemplate></ContentPresenter>
+            </Grid>
             <ControlTemplate.Triggers>
                 <Trigger Property="IsChecked" Value="True">
                     <Setter TargetName="Track" Property="Background" Value="{DynamicResource PrimaryBrush}"/>
@@ -130,6 +130,7 @@
         </ControlTemplate></Setter.Value></Setter>
     </Style>
     <Style TargetType="Slider">
+        <Setter Property="FlowDirection" Value="LeftToRight"/>
         <Setter Property="MinHeight" Value="36"/>
         <Setter Property="VerticalAlignment" Value="Center"/>
         <Setter Property="FocusVisualStyle" Value="{StaticResource KeyboardFocus}"/>
@@ -150,6 +151,7 @@
         </ControlTemplate></Setter.Value></Setter>
     </Style>
     <Style TargetType="ProgressBar">
+        <Setter Property="FlowDirection" Value="LeftToRight"/>
         <Setter Property="Height" Value="6"/>
         <Setter Property="Foreground" Value="{DynamicResource PrimaryBrush}"/>
         <Setter Property="Background" Value="{DynamicResource SurfaceHighBrush}"/>
