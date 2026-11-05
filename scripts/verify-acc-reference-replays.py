@@ -21,7 +21,7 @@ folder.mkdir(parents=True,exist_ok=True)
 
 # Scenario designs follow GripLossFeedbackChecks.cs from the pinned MIT-licensed
 # ACC project, but the numbers below generate LMU frames, not ACC recordings.
-cases = ('normal','loaded-corner','understeer','rear-recovery','left-kerb','right-kerb',
+cases = ('normal','loaded-corner','loaded-corner-high','understeer','rear-recovery','left-kerb','right-kerb',
          'left-grass','right-grass','wheelspin','tc-wheelspin')
 
 def make_frame(case,n):
@@ -33,6 +33,7 @@ def make_frame(case,n):
              AbsIntervening=False,TcIntervening=False,LastImpactTime=0,LastImpactMagnitude=0)
     front=.04; rear=[.04,.04]; body=0
     if case=='loaded-corner': front=.13;rear=[.09,.09];body=.06
+    if case=='loaded-corner-high': front=.19;rear=[.12,.12];body=.06
     if case=='understeer': front=.30;rear=[.06,.06];body=.05
     if case=='rear-recovery':
         if 40<=n<100: front=.07;rear=[.35,.35];body=.32
@@ -81,6 +82,9 @@ for case in cases:
     assert all(0<=v<=.850001 for r in rows for v in r['AudioLevels'].values()),case
     left=max(r['Audio']['Left']['RearDrag'] for r in driving)
     right=max(r['Audio']['Right']['RearDrag'] for r in driving)
+    if case=='loaded-corner-high':
+        assert all(r['Audio']['Left']['FrontSlip']==0 and r['Audio']['Right']['FrontSlip']==0 and
+                   r['Audio']['Left']['RearSlip']==0 and r['Audio']['Right']['RearSlip']==0 for r in driving),case
     if case=='rear-recovery':
         assert left>.1 and right>0,case
         during=[r for r in driving if 1.00<=r['At']<1.14]

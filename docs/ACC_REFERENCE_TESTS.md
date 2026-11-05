@@ -5,7 +5,7 @@
 | ACC 参考场景 | 本项目验证 |
 |---|---|
 | 正常、稳定负载转弯、前轮推头 | 不误判后轴失抓；有无偏航信息时，L2/R2 编码一致 |
-| 正常滑移基线 | 首个可信侧滑角、首次有效纵向滑移分别初始化；不将尚未计算的零值当作实测基线 |
+| 正常滑移基线 | 首个可信侧滑角、首次有效纵向滑移分别初始化；合成回放另验证较高但可信的稳定转弯不会在启动时产生滑移提示 |
 | 单轮异常、路肩、草地 | 左右轮分别验证；不凭单轮跳变触发后轴事件，定向 PCM 不错误串到对侧 |
 | 纯 TC／纵向空转 | 先学习有效轮胎半径，再施加逐轮纵向滑移；不误报后轴横向失抓，扳机保持原行为 |
 | 成对后轮滑移／车身横移支持 | 两种条件分别能确认失抓；验证左右音圈中独立的后轴声道 |
@@ -15,7 +15,7 @@
 | 非有限输入、关闭抓地反馈 | 错误输入无法使状态保持为 NaN；关闭后输出静音且扳机一致 |
 | 计算开销 | 预热后连续 100,000 次 `RearDragState.Update` 不产生托管分配；这不等于整个应用零分配 |
 
-`AccReferenceRegressionTests.cs` 随现有测试项目及 `scripts/build.ps1` 自动执行。`scripts/verify-acc-reference-replays.py` 在 CI 中另外生成 10 个合成 LMU 场景，调用生产遥测管线与四声道 PCM 合成，检查路肩定位、后轴恢复、纯 TC/空转、HID/音频路由和最终停止状态。结果写入 `artifacts/validation/acc-reference-replays.json`。原有 10 组 `verify-replays.py` 回放保留，且为独立的 CI 步骤。
+`AccReferenceRegressionTests.cs` 随现有测试项目及 `scripts/build.ps1` 自动执行。`scripts/verify-acc-reference-replays.py` 在 CI 中另外生成 11 个合成 LMU 场景，调用生产遥测管线与四声道 PCM 合成，检查路肩定位、后轴恢复、纯 TC/空转、HID/音频路由和最终停止状态。结果写入 `artifacts/validation/acc-reference-replays.json`。原有 10 组 `verify-replays.py` 回放保留，且为独立的 CI 步骤。
 
 在完成 Release 构建后，也可在仓库根目录运行：
 
