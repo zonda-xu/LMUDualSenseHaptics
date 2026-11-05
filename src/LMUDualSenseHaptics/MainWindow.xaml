@@ -13,7 +13,11 @@
                     <TextBlock Text="{DynamicResource Text_9F6FEE1ABA}" VerticalAlignment="Center" Margin="0,0,10,8"/>
                     <ComboBox x:Name="LanguageChoice" Width="170" DisplayMemberPath="Name" SelectedValuePath="Code"
                               SelectionChanged="LanguageChanged" FlowDirection="LeftToRight" AutomationProperties.AutomationId="LanguageChoice"
-                              AutomationProperties.Name="{DynamicResource Text_3D13868593}" Margin="0,0,16,8"/>
+                              AutomationProperties.Name="{DynamicResource Text_3D13868593}" Margin="0,0,16,8">
+                        <ComboBox.ItemContainerStyle><Style TargetType="ComboBoxItem" BasedOn="{StaticResource {x:Type ComboBoxItem}}">
+                            <Setter Property="AutomationProperties.Name" Value="{Binding Name}"/>
+                        </Style></ComboBox.ItemContainerStyle>
+                    </ComboBox>
                     <Button x:Name="ThemeButton" Content="{DynamicResource Text_46BAD67D06}" Style="{StaticResource TextButton}" Click="ThemeClick"/>
                     <Button Content="{DynamicResource Text_6E584E3D5C}" Style="{StaticResource PrimaryButton}" Click="SaveClick" Margin="0,0,0,8"/>
                 </WrapPanel>

@@ -56,8 +56,17 @@ try {
         $condition = [System.Windows.Automation.AndCondition]::new(
             [System.Windows.Automation.PropertyCondition]::new([System.Windows.Automation.AutomationElement]::NameProperty, $name),
             [System.Windows.Automation.PropertyCondition]::new([System.Windows.Automation.AutomationElement]::ControlTypeProperty, [System.Windows.Automation.ControlType]::ListItem))
-        $item = [System.Windows.Automation.AutomationElement]::RootElement.FindFirst($scope, $condition)
-        if (-not $item) { throw "Language item not found: $name" }
+        $deadline = [DateTime]::UtcNow.AddSeconds(5)
+        do {
+            $item = $combo.FindFirst($scope, $condition)
+            if (-not $item) { $item = [System.Windows.Automation.AutomationElement]::RootElement.FindFirst($scope, $condition) }
+            if ($item) { break }
+            Start-Sleep -Milliseconds 100
+        } while ([DateTime]::UtcNow -lt $deadline)
+        if (-not $item) {
+            $combo.FindAll($scope, [System.Windows.Automation.Condition]::TrueCondition) | ForEach-Object { Write-Host "LANGUAGE ITEM: $($_.Current.ControlType.ProgrammaticName) / $($_.Current.Name)" }
+            throw "Language item not found: $name"
+        }
         $item.GetCurrentPattern([System.Windows.Automation.SelectionItemPattern]::Pattern).Select()
         $combo.GetCurrentPattern([System.Windows.Automation.ExpandCollapsePattern]::Pattern).Collapse()
         Start-Sleep -Milliseconds 250
