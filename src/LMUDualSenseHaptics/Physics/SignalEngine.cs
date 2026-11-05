@@ -47,7 +47,7 @@ public sealed class SignalEngine
                 Wheels[i].PreviousSusp=f.Wheels[i].SuspDeflectionM;
                 Wheels[i].ForceReference=f.Wheels[i].SuspForceN;Wheels[i].LoadReference=f.Wheels[i].TireLoadN;
             }
-            SurfaceDynamics.Update(f,Wheels,.020,p.RoadSensitivity/100.0,c.ContactMinLoad,RoadSignals.Wheels.Any(w=>w.Kerb>.02));
+            SurfaceDynamics.Update(f,Wheels,.020,p.RoadSensitivity/100.0,c.ContactMinLoad,RoadSignals.Wheels.Any(w=>w.Kerb>.02),p.GripSlip.Gain>0);
             Braking.Update(f,null,p,c);
             velocityHistory.Enqueue((f.CapturedAtSec,new(f.LocalVxMps,f.LocalVzMps)));return;
         }
@@ -120,7 +120,7 @@ public sealed class SignalEngine
         // A restarted telemetry sequence must not reuse the previous car's
         // surface/rear event even when its source clock still moves forward.
         if(f.Sequence<previous.Sequence||surfaceDt>.120){SurfaceDynamics.Reset();surfaceDt=.020;}
-        SurfaceDynamics.Update(f,Wheels,surfaceDt,p.RoadSensitivity/100.0,c.ContactMinLoad,RoadSignals.Wheels.Any(w=>w.Kerb>.02));
+        SurfaceDynamics.Update(f,Wheels,surfaceDt,p.RoadSensitivity/100.0,c.ContactMinLoad,RoadSignals.Wheels.Any(w=>w.Kerb>.02),p.GripSlip.Gain>0);
         double bg=Smooth(.08,.28,f.Brake01),tg=Smooth(.08,.32,f.Throttle01),sg=Smooth(4,16,f.SpeedMps);
         double ar=f.AbsIntervening?1:0,tr=f.TcIntervening?1:0;
         Abs=Env(Abs,ar*bg,dt,.032,.105);Tc=Env(Tc,tr*tg,dt,.060,.135);

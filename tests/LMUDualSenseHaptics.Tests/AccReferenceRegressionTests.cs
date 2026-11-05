@@ -45,14 +45,14 @@ internal static class AccReferenceRegressionTests
         {
             var f=Frame(1,.01,.01,.01,0,.02,.01);var surface=new AccSurfaceDynamics();
             var wheels=Enumerable.Range(0,4).Select(_=>new WheelState()).ToArray();
-            surface.Update(f,wheels,.01,1,100,false); // setup: wheel angles are not yet calculated
+            surface.Update(f,wheels,.01,1,100,false,true); // setup: wheel angles are not yet calculated
             for(int i=0;i<4;i++)wheels[i].Alpha=.19;
-            surface.Update(f,wheels,.01,1,100,false);
+            surface.Update(f,wheels,.01,1,100,false,true);
             Need(surface.Slip.All(x=>x==0),$"first trustworthy angle was treated as excessive: {string.Join(",",surface.Slip)}");
             surface.Reset();foreach(var w in wheels){w.Alpha=.01;w.Kappa=null;}
-            surface.Update(f,wheels,.01,1,100,false);surface.Update(f,wheels,.01,1,100,false);
+            surface.Update(f,wheels,.01,1,100,false,true);surface.Update(f,wheels,.01,1,100,false,true);
             foreach(var w in wheels)w.Kappa=.14;
-            surface.Update(f,wheels,.01,1,100,false);
+            surface.Update(f,wheels,.01,1,100,false,true);
             Need(surface.Slip.All(x=>x==0),$"first available ratio was treated as excessive: {string.Join(",",surface.Slip)}");
         });
         check("ACC reference: each single rear wheel spike with normal body motion stays quiet",()=>
@@ -229,7 +229,16 @@ internal static class AccReferenceRegressionTests
                 var a=loop.Tick(f,f.CapturedAtSec,p);var b=noYaw.Tick(f with{LocalYawRate=null},f.CapturedAtSec,p);var c=Command(loop,f,p);
                 Need(a.LeftTrigger==b.LeftTrigger&&a.RightTrigger==b.RightTrigger,$"triggers changed at {n}");
                 Need(c.Left.RearDrag==0&&c.Right.RearDrag==0&&c.Left.FrontSlip==0&&c.Right.RearSlip==0,"disabled grip leaked into PCM");
+                Need(!Active(loop),"disabled grip retained rear event state");
             }
+            var enabled=p with{GripSlip=new(true,50)};
+            var first=Frame(300,.09,.35,.35,.32);loop.Tick(first,first.CapturedAtSec,enabled);
+            Need(!Active(loop),"reenabling reused a prior event without new evidence");
+            for(int n=301;n<320;n++){var f=Frame(n,.09,.35,.35,.32);loop.Tick(f,f.CapturedAtSec,enabled);}
+            Need(Active(loop),"new evidence failed to restart rear feedback");
+            var off=Frame(320,.09,.35,.35,.32);loop.Tick(off,off.CapturedAtSec,p);
+            var offCommand=Command(loop,off,p);
+            Need(!Active(loop)&&offCommand.Left.RearDrag==0&&offCommand.Right.RearDrag==0,"disabling retained an active rear event");
         });
         check("ACC reference: rear event update avoids per-frame managed allocations",()=>
         {

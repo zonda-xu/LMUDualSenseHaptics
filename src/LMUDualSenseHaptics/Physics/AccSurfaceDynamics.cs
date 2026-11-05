@@ -24,7 +24,7 @@ public sealed class AccSurfaceDynamics
         r.CopyTo(ratioBase,0);a.CopyTo(angleBase,0);Array.Clear(ratioPrimed);
         primed=adaptive=false;Side=Axle=0;RearDrag.Reset();
     }
-    public void Update(TelemetryFrame f,WheelState[] wheels,double dt,double sensitivity,double contactMin,bool kerbActive)
+    public void Update(TelemetryFrame f,WheelState[] wheels,double dt,double sensitivity,double contactMin,bool kerbActive,bool gripEnabled)
     {
         bool hadPrevious=primed;
         double speed=Smooth(4/3.6,28/3.6,f.SpeedMps);
@@ -87,6 +87,7 @@ public sealed class AccSurfaceDynamics
         double rear=Side>.20?Shock[3]:Side<-.20?Shock[2]:Math.Max(Shock[2],Shock[3]);
         double axle=front+rear>.001?(front-rear)/(front+rear):0;
         Axle=Ema(Axle,Math.Sign(axle)*Smooth(.06,.32,Math.Abs(axle)),dt,.030);
-        if(hadPrevious)RearDrag.Update(f,wheels,dt);
+        if(!gripEnabled)RearDrag.Reset();
+        else if(hadPrevious)RearDrag.Update(f,wheels,dt);
     }
 }
