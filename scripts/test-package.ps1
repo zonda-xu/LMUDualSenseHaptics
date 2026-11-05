@@ -102,7 +102,7 @@ try {
             if ($t.Current.BoundingRectangle.Width -le 0) { throw 'Invisible translated tab.' }
         }
         (Find-Id 'ResetDefaultsButton').GetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern).Invoke()
-        $dialog = Wait-Dialog $catalog['Text_F242C94797]
+        $dialog = Wait-Dialog $catalog['Text_F242C94797']
         foreach ($pair in @(@('ConfirmAccept','Text_FAC2A67AD8'),@('ConfirmCancel','Text_2CD0F3BE87'))) {
             $condition = [System.Windows.Automation.PropertyCondition]::new([System.Windows.Automation.AutomationElement]::AutomationIdProperty, $pair[0])
             $button = $dialog.FindFirst($scope, $condition)

@@ -1,8 +1,8 @@
 # LMU DualSense Haptics
 
-为 **Le Mans Ultimate（勒芒终极版）** 提供 DualSense USB 自适应扳机和左右握把音圈反馈。当前版本：**v1.6-preview**。界面为中文。
+为 **Le Mans Ultimate（勒芒终极版）** 提供 DualSense USB 自适应扳机和左右握把音圈反馈。当前版本：**v1.6-preview**。支持中文、英语、法语、西班牙语、俄语和阿拉伯语。
 
-本版基于 **v1.3.9-preview**，支持单车扳机配置分享，并减轻无 ABS 车辆在默认和中等强度下的制动提示。
+本版基于 **v1.5**，新增即时语言切换并保存语言偏好；保留单车配置分享和 v1.5 的扳机反馈。
 
 ## 功能
 
