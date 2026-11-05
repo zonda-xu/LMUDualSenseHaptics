@@ -16,20 +16,23 @@ try {
     foreach ($file in @('bin/LMUDualSenseHaptics.exe','bin/LMUDualSenseHaptics.dll','bin/hostfxr.dll','bin/coreclr.dll','docs/LICENSE','docs/THIRD_PARTY_NOTICES.md')) {
         if (-not (Test-Path (Join-Path $testRoot $file))) { throw "Missing package file: $file" }
     }
-    # Start the extracted root launcher from an unrelated working directory.
-    $launcher = Start-Process -FilePath $rootFiles[0].FullName -WorkingDirectory $env:TEMP -PassThru
-    $deadline = [DateTime]::UtcNow.AddSeconds(40)
-    while ([DateTime]::UtcNow -lt $deadline) {
-        if ($launcher.HasExited) { throw "Launcher exited before the window opened: $($launcher.ExitCode)" }
-        if (-not $child) {
-            $info = Get-CimInstance Win32_Process -Filter "ParentProcessId = $($launcher.Id)" | Where-Object { $_.Name -eq 'LMUDualSenseHaptics.exe' } | Select-Object -First 1
-            if ($info) { $child = Get-Process -Id $info.ProcessId }
+    function Start-PackagedApp {
+        $script:child = $null
+        $script:launcher = Start-Process -FilePath $rootFiles[0].FullName -WorkingDirectory $env:TEMP -PassThru
+        $deadline = [DateTime]::UtcNow.AddSeconds(40)
+        while ([DateTime]::UtcNow -lt $deadline) {
+            if ($launcher.HasExited) { throw "Launcher exited before the window opened: $($launcher.ExitCode)" }
+            if (-not $child) {
+                $info = Get-CimInstance Win32_Process -Filter "ParentProcessId = $($launcher.Id)" | Where-Object { $_.Name -eq 'LMUDualSenseHaptics.exe' } | Select-Object -First 1
+                if ($info) { $script:child = Get-Process -Id $info.ProcessId }
+            }
+            if ($child) { $child.Refresh(); if ($child.MainWindowHandle -ne 0) { break } }
+            Start-Sleep -Milliseconds 250
         }
-        if ($child) { $child.Refresh(); if ($child.MainWindowHandle -ne 0) { break } }
-        Start-Sleep -Milliseconds 250
+        if (-not $child -or $child.MainWindowHandle -eq 0) { throw 'Extracted application did not open a WPF window.' }
+        if ($child.Path -ne (Join-Path $testRoot 'bin/LMUDualSenseHaptics.exe')) { throw 'Launcher started the wrong application.' }
     }
-    if (-not $child -or $child.MainWindowHandle -eq 0) { throw 'Extracted application did not open a WPF window.' }
-    if ($child.Path -ne (Join-Path $testRoot 'bin/LMUDualSenseHaptics.exe')) { throw 'Launcher started the wrong application.' }
+    Start-PackagedApp
     Add-Type -AssemblyName UIAutomationClient
     Add-Type -AssemblyName UIAutomationTypes
     $window = [System.Windows.Automation.AutomationElement]::FromHandle($child.MainWindowHandle)
@@ -85,8 +88,9 @@ try {
         # Physical left/right and L2/R2 meters must not exchange places in Arabic.
         $left = Find-Id 'BrakeMeter'; $right = Find-Id 'ThrottleMeter'
         if ($left.Current.BoundingRectangle.X -ge $right.Current.BoundingRectangle.X) { throw 'Physical trigger order reversed.' }
-        $culture = [Globalization.CultureInfo]::GetCultureInfo($code).LCID
-        if ($import.Current.Culture -ne $culture) { throw "Wrong UI language metadata: $code" }
+        $culture = [Globalization.CultureInfo]::GetCultureInfo($code).TwoLetterISOLanguageName
+        $actualCulture = [Globalization.CultureInfo]::GetCultureInfo($import.Current.Culture).TwoLetterISOLanguageName
+        if ($actualCulture -ne $culture) { throw "Wrong UI language metadata: $code ($actualCulture)" }
         $import.GetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern).Invoke()
         $dialog = Wait-Dialog $catalog['Text_96618B11E9']
         $dialog.GetCurrentPattern([System.Windows.Automation.WindowPattern]::Pattern).Close()
@@ -147,8 +151,17 @@ try {
     if (-not $dialog) { throw 'Vehicle import file dialog did not open.' }
     $dialog.GetCurrentPattern([System.Windows.Automation.WindowPattern]::Pattern).Close()
     Start-Sleep -Milliseconds 200
+    Select-Language 'العربية'
     if (-not $child.CloseMainWindow()) { throw 'Could not close application window.' }
     if (-not $launcher.WaitForExit(15000) -or $launcher.ExitCode -ne 0) { throw 'Launcher did not propagate clean application shutdown.' }
+    Start-PackagedApp
+    $window = [System.Windows.Automation.AutomationElement]::FromHandle($child.MainWindowHandle)
+    Start-Sleep -Milliseconds 250
+    $arabic = Get-Content (Join-Path $PSScriptRoot '../src/LMUDualSenseHaptics/Localization/ar.json') -Raw -Encoding UTF8 | ConvertFrom-Json -AsHashtable
+    if ((Find-Id 'ImportVehicleButton').Current.Name -ne $arabic['Text_340152EE2E']) { throw 'Saved Arabic language did not survive restart.' }
+    if (-not $child.CloseMainWindow()) { throw 'Could not close restarted application.' }
+    if (-not $launcher.WaitForExit(15000) -or $launcher.ExitCode -ne 0) { throw 'Restarted application did not exit cleanly.' }
+    Write-Host 'LANGUAGE RESTART PASS: saved Arabic is restored on a fresh process.'
     Write-Host 'PACKAGE PASS: root-only EXE, bin dependencies, Unicode/spaces path, unrelated cwd, WPF startup, Material combos in light/dark themes, vehicle share/import controls and import cancellation, clean exit.'
 } catch {
     Write-Host "Package startup diagnostics: $($_.Exception.Message)"

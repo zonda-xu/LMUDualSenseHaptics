@@ -13,6 +13,7 @@ jobs:
     outputs:
       tag: ${{ steps.version.outputs.tag }}
     runs-on: windows-latest
+    timeout-minutes: 12
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
