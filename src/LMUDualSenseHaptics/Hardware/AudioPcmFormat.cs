@@ -54,9 +54,9 @@ public sealed record AudioPcmFormat(int SampleRate, int Channels, int Bits, int 
     }
 }
 
-public sealed record AudioEndpointInfo(string Id, string Name, Guid ContainerId, int Channels, int SampleRate, string Problem)
+public sealed record AudioEndpointInfo(string Id, string Name, Guid ContainerId, int Channels, int SampleRate, UiText Problem)
 {
-    public string DisplayName => $"{Name} · {Channels} ch / {SampleRate} Hz" + (Problem.Length > 0 ? " · " + Problem : "");
+    public string DisplayName => $"{Name} · {Channels} ch / {SampleRate} Hz" + (!Problem.IsEmpty ? " · " + Problem.ToString() : "");
     public bool HasControllerName => Name.Contains("DualSense", StringComparison.OrdinalIgnoreCase) ||
         Name.Contains("Wireless Controller", StringComparison.OrdinalIgnoreCase) ||
         Name.Contains("无线控制器", StringComparison.OrdinalIgnoreCase) || Name.Contains("無線控制器", StringComparison.OrdinalIgnoreCase);

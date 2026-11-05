@@ -29,6 +29,7 @@ internal static class LocalizationTests
         {
             var cached=L.M("Text_51318070A7",L.M("Text_BE1462586F"),"DualSense",L.M("Text_18A9D61DEE"),"Test");
             var error=L.InvalidData(L.M("Text_07F89BFD62"));
+            var endpoint=new AudioEndpointInfo("test","DualSense",Guid.Empty,2,48000,L.Error(error));
             string stableLog=JsonSerializer.Serialize(cached);
             try
             {
@@ -37,6 +38,7 @@ internal static class LocalizationTests
                     L.SetLanguage(language.Code);
                     Need(cached.ToString().Contains(L.T("Text_BE1462586F")));
                     Need(L.Error(error).ToString()==L.T("Text_07F89BFD62"));
+                    Need(endpoint.DisplayName.Contains(L.T("Text_07F89BFD62")),"Cached endpoint error did not switch language");
                     Need(JsonSerializer.Serialize(cached)==stableLog,"UI language changed logs");
                     Need(error is InvalidDataException);
                 }

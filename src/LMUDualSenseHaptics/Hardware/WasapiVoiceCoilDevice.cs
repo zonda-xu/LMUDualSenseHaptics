@@ -37,7 +37,7 @@ internal sealed class WasapiVoiceCoilDevice : IDisposable
                 {
                     Check(devices.Item(i, out device)); Check(device.GetId(out string id));
                     string name = ReadName(device); Guid container = ReadContainer(device);
-                    int channels = 0, rate = 0; string problem = "";
+                    int channels = 0, rate = 0; UiText problem = "";
                     IAudioClient? probe = null; IntPtr format = IntPtr.Zero;
                     try
                     {
@@ -46,7 +46,7 @@ internal sealed class WasapiVoiceCoilDevice : IDisposable
                         channels = (ushort)Marshal.ReadInt16(format, 2); rate = Marshal.ReadInt32(format, 4);
                         _ = ReadFormat(format); // Distinguishes stereo/invalid masks from supported quad.
                     }
-                    catch (Exception ex) when (ex is COMException or InvalidDataException) { problem = ex.Message; }
+                    catch (Exception ex) when (ex is COMException or InvalidDataException) { problem = L.Error(ex); }
                     finally { if (format != IntPtr.Zero) Marshal.FreeCoTaskMem(format); Release(probe); }
                     result.Add(new(id, name, container, channels, rate, problem));
                 }
