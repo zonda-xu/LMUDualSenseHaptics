@@ -19,7 +19,9 @@ public static class GripEngine
         // remains unchanged. Front/rear are encoded as different cadence.
         double peak=Math.Max(Math.Max(shock[0],shock[1]),Math.Max(shock[2],shock[3]));
         double strongest=peak*.08*p.Road.Gain;
-        double leftShare=side>0?1-.985*side:1,rightShare=side<0?1+.985*side:1;
+        double separation=p.SpatialSeparation/100.0;
+        double leftShare=side>0?1-.985*side*separation:1;
+        double rightShare=side<0?1+.985*side*separation:1;
         double roadL=strongest*leftShare,roadR=strongest*rightShare;
         // A strong suspension/load impulse also excites a separate lower-frequency
         // bump oscillator; ordinary road texture keeps its own carrier.

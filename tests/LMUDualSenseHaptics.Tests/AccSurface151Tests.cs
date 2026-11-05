@@ -34,12 +34,25 @@ internal static class AccSurface151Tests
             var f=Frame(0);loop.Tick(f,0,p);
             f=Frame(1) with{Wheels=Frame(1).Wheels.Select((w,i)=>i==1?w with{SuspDeflectionM=.003f,TireLoadN=5000}:w).ToImmutableArray()};
             var output=loop.Tick(f,.01,p);var a=loop.Signals.SurfaceDynamics;
-            Need(a.Shock[1]>0&&a.Shock[0]==0&&a.Shock[2]==0&&a.Shock[3]==0);
-            Need(loop.Layers.RoadR>loop.Layers.RoadL&&output.RightActuator>output.LeftActuator);
+            Need(a.Shock[1]>0&&a.Shock[0]==0&&a.Shock[2]==0&&a.Shock[3]==0,$"shock {string.Join(",",a.Shock)}");
+            Need(loop.Layers.RoadR>loop.Layers.RoadL&&output.RightActuator>output.LeftActuator,$"layer {loop.Layers.RoadL}/{loop.Layers.RoadR} HID {output.LeftActuator}/{output.RightActuator}");
             var cmd=VoiceCoilCommand.Create(loop.Signals.RoadSignals,loop.Layers,f,.01,p,1,1);
-            Need(cmd.Right.Road>cmd.Left.Road&&cmd.Right.Bump>0&&cmd.Right.Kerb==0);
-            var synth=new VoiceCoilSynthesizer(48000);float[] pcm=new float[960];synth.Render(cmd,pcm,.01);
-            Need(synth.Levels.RightPeak>synth.Levels.LeftPeak&&pcm.Where((_,i)=>i%4<2).All(x=>x==0));
+            Need(cmd.Right.Road>cmd.Left.Road&&cmd.Right.Bump>0&&cmd.Right.Kerb==0,$"road {cmd.Left.Road}/{cmd.Right.Road}, bump {cmd.Right.Bump}, kerb {cmd.Right.Kerb}");
+            var synth=new VoiceCoilSynthesizer(48000);float[] pcm=new float[9600];synth.Render(cmd,pcm,.01);
+            Need(synth.Levels.RightPeak>synth.Levels.LeftPeak&&pcm.Where((_,i)=>i%4<2).All(x=>x==0),$"peaks {synth.Levels.LeftPeak}/{synth.Levels.RightPeak}");
+        });
+        check("1.5.1 spatial separation controls opposite-side road and bump audio",()=>
+        {
+            VoiceCoilCommand Run(int separation)
+            {
+                var loop=new FeedbackLoop();var p=new Profile{SpatialSeparation=separation,Engine=new(false,0),GripSlip=new(false,0),Impact=new(false,0)};
+                loop.Tick(Frame(0),0,p);var f=Frame(1) with{Wheels=Frame(1).Wheels.Select((w,i)=>i==1?w with{SuspDeflectionM=.003f}:w).ToImmutableArray()};
+                loop.Tick(f,.01,p);return VoiceCoilCommand.Create(loop.Signals.RoadSignals,loop.Layers,f,.01,p,1,1);
+            }
+            var mixed=Run(0);var separated=Run(100);
+            Need(mixed.Left.Road==mixed.Right.Road&&separated.Left.Road<separated.Right.Road);
+            Need(separated.Left.Bump<separated.Right.Bump&&mixed.Left.Bump==mixed.Right.Bump);
+            Need(mixed.Right.Road==separated.Right.Road&&mixed.Right.Bump==separated.Right.Bump);
         });
         check("1.5.1 rear oversteer requires paired wheels or body support and has a recovery tail",()=>
         {
