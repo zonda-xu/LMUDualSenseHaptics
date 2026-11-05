@@ -15,8 +15,11 @@ public sealed class RearDragState
     public void Update(TelemetryFrame f,WheelState[] wheels,double dt)
     {
         double forward=Math.Abs(f.LocalVzMps);
-        if(f.LocalYawRate is not float yaw || !float.IsFinite(yaw)||forward<=2||f.Gear<0||f.SpeedMps<14/3.6||
-           wheels.Any(w=>!double.IsFinite(w.Alpha))||f.Wheels.Any(w=>!WheelContact.IsGrounded(w,50))) {Reset();return;}
+        if(f.LocalYawRate is not float yaw || !float.IsFinite(yaw)||forward<=2||f.Gear<0||f.SpeedMps<14/3.6) {Reset();return;}
+        // Inspect fixed wheel arrays directly: avoid allocating a boxed immutable
+        // array enumerator in the physics loop (ACC's update is allocation-free).
+        for(int i=0;i<4;i++)
+            if(!double.IsFinite(wheels[i].Alpha)||!WheelContact.IsGrounded(f.Wheels[i],50)){Reset();return;}
         double rl=Math.Abs(wheels[2].Alpha),rr=Math.Abs(wheels[3].Alpha);
         double front=(Math.Abs(wheels[0].Alpha)+Math.Abs(wheels[1].Alpha))*.5,rear=(rl+rr)*.5;
         double body=Math.Abs(f.LocalVxMps)/Math.Max(forward,4),steer=Math.Abs(f.Steering);

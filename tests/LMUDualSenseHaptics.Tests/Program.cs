@@ -386,6 +386,7 @@ Brake13Tests.Run(Check);
 VehicleTriggerTests.Run(Check);
 Revision15Tests.Run(Check);
 AccSurface151Tests.Run(Check);
+AccReferenceRegressionTests.Run(Check);
 Console.WriteLine($"RESULT {passed} passed, {failed} failed (synthetic, sanitized recorded fields and fake HID; no hardware claims)");
 Environment.ExitCode=failed==0?0:1;
 

@@ -6,7 +6,7 @@
 
 作者 Adudumax，固定提交 e97b926be86a3c92789d9e5e2c4a3ad3eb741c7c。
 
-新增基于提交 `0c84c1901842fa1b864a3445226ddd64f991ffad` 的路面、滑移及后轴失抓改编：`Physics/AccSurfaceDynamics.cs`、`Physics/RearDragState.cs`、`Haptics/GripEngine.cs`、`Haptics/VoiceCoilSynthesizer.cs`。LMU 适配及 PCM 实现有所变化，详见 `docs/ACC_SURFACE_1_5_1.md`。
+新增基于提交 `0c84c1901842fa1b864a3445226ddd64f991ffad` 的路面、滑移及后轴失抓改编：`Physics/AccSurfaceDynamics.cs`、`Physics/RearDragState.cs`、`Haptics/GripEngine.cs`、`Haptics/VoiceCoilSynthesizer.cs`。LMU 适配及 PCM 实现有所变化，详见 `docs/ACC_SURFACE_1_5_1.md`。`tests/LMUDualSenseHaptics.Tests/AccReferenceRegressionTests.cs` 和 `scripts/verify-acc-reference-replays.py` 的测试情境参考同一提交中的 `tests/GripLossFeedbackChecks.cs`；LMU 测试数据为独立生成的合成样本。
 
 改编文件：`Hardware/TriggerEffect.cs`、`Hardware/DualSenseReportBuilder.cs`（仅 USB 分支）、`Hardware/DualSenseHidDevice.cs`、`Hardware/NativeMethods.cs`。
 

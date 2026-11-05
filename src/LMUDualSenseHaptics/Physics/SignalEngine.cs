@@ -117,7 +117,9 @@ public sealed class SignalEngine
             z.PreviousSusp=q.SuspDeflectionM;
         }
         double surfaceDt=f.SourceTimeSec-previous.SourceTimeSec;
-        if(surfaceDt>.120){SurfaceDynamics.Reset();surfaceDt=.020;}
+        // A restarted telemetry sequence must not reuse the previous car's
+        // surface/rear event even when its source clock still moves forward.
+        if(f.Sequence<previous.Sequence||surfaceDt>.120){SurfaceDynamics.Reset();surfaceDt=.020;}
         SurfaceDynamics.Update(f,Wheels,surfaceDt,p.RoadSensitivity/100.0,c.ContactMinLoad,RoadSignals.Wheels.Any(w=>w.Kerb>.02));
         double bg=Smooth(.08,.28,f.Brake01),tg=Smooth(.08,.32,f.Throttle01),sg=Smooth(4,16,f.SpeedMps);
         double ar=f.AbsIntervening?1:0,tr=f.TcIntervening?1:0;
