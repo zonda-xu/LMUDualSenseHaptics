@@ -123,7 +123,9 @@ internal sealed class ApplicationCoordinator:IAsyncDisposable
 
                 lock(recordGate)
                 {
-                    if(recorder is {Stopped:false} && logSampling.Output(after))recorder.Record(new OutputRecord("output",after,f?.Sequence??0,f?.CapturedAtSec??0,(after-before)*1000,success,feedback,e.Abs,e.Lock,e.Tc,e.Spin,e.Shift,e.Redline,layers,pipeline.Mixer.PreLeft,pipeline.Mixer.PreRight,pipeline.Mixer.EngineGain,pipeline.Mixer.ContinuousGain,pipeline.Mixer.OppositeGain,pipeline.Mixer.ClippedFrames,pipeline.ParameterSource,pipeline.Channels,pipeline.LeftTriggerSource,pipeline.RightTriggerSource,audioCommand,audioStatus.Ready,new(e.Braking.Budget.Prompt,e.Braking.Budget.EstimatedLimit,e.Braking.Budget.Confidence,e.Braking.Budget.Stops,e.Braking.Budget.LoadFactor,e.Braking.Budget.DemandRate,e.Braking.Budget.Context,e.Braking.Budget.Evidence,e.Braking.MaxSlip,e.Braking.Risk,e.Braking.ValidSlipWheels,e.Braking.WarningActive,e.Braking.LockActive)));
+                    if(recorder is {Stopped:false} && logSampling.Output(after))recorder.Record(new OutputRecord("output",after,f?.Sequence??0,f?.CapturedAtSec??0,(after-before)*1000,success,feedback,e.Abs,e.Lock,e.Tc,e.Spin,e.Shift,e.Redline,layers,pipeline.Mixer.PreLeft,pipeline.Mixer.PreRight,pipeline.Mixer.EngineGain,pipeline.Mixer.ContinuousGain,pipeline.Mixer.OppositeGain,pipeline.Mixer.ClippedFrames,pipeline.ParameterSource,pipeline.Channels,pipeline.LeftTriggerSource,pipeline.RightTriggerSource,audioCommand,audioStatus.Ready,new(e.Braking.Budget.Prompt,e.Braking.Budget.EstimatedLimit,e.Braking.Budget.Confidence,e.Braking.Budget.Stops,e.Braking.Budget.LoadFactor,e.Braking.Budget.DemandRate,e.Braking.Budget.Context,e.Braking.Budget.Evidence,e.Braking.MaxSlip,e.Braking.Risk,e.Braking.ValidSlipWheels,e.Braking.WarningActive,e.Braking.LockActive),
+                        new(e.SurfaceDynamics.Shock.ToArray(),e.SurfaceDynamics.Slip.ToArray(),e.SurfaceDynamics.Side,e.SurfaceDynamics.Axle,
+                            e.SurfaceDynamics.RearDrag.Strength,e.SurfaceDynamics.RearDrag.Active,e.SurfaceDynamics.RearDrag.Recovery,f?.LocalYawRate is not null)));
                 }
                 if(now>=nextUi)
                 {
@@ -136,6 +138,7 @@ internal sealed class ApplicationCoordinator:IAsyncDisposable
                         var raw=f is not null && f.Wheels.Length>i?f.Wheels[i]:null;
                         return $"{new[]{"FL","FR","RL","RR"}[i]} {w.Source} contact={w.Contact} via={w.ContactEvidence} type={raw?.SurfaceType?.ToString()??"未知"} material={raw?.TerrainName??""} texture={w.Texture:F3} bump={w.Bump:F3} kerb={w.Kerb:F3} inferred={w.InferredKerb:F3} susV={w.SuspensionVelocity:F4}m/s loadRate={w.LoadRate:F2}/s";
                     }));
+                    wd+=$"\nACC 路面冲击 FL/FR/RL/RR={string.Join("/",e.SurfaceDynamics.Shock.Select(x=>x.ToString("F2")))} · 滑移={string.Join("/",e.SurfaceDynamics.Slip.Select(x=>x.ToString("F2")))} · 后轴失抓={e.SurfaceDynamics.RearDrag.Strength:F2} 检测={e.SurfaceDynamics.RearDrag.Active} 恢复={e.SurfaceDynamics.RearDrag.Recovery} · 偏航={f?.LocalYawRate?.ToString("F2")??"未知"}";
                     string state=pipeline.Reason;string err=device.LastError.Length>0?device.LastError:telemetryError;
                     if(p.AudioHaptics.Enabled && device.Connected && audioStatus.Error.Length>0)
                         err=string.Join(" | ",new[]{err,audioStatus.Error}.Where(x=>x.Length>0));

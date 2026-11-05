@@ -35,8 +35,8 @@ public sealed record VoiceCoilCommand(bool Enabled, double ValidUntil,
         // Spacing is a tunable synthetic cue; telemetry does not provide a kerb waveform.
         double cadence = Math.Clamp(frame.SpeedMps / engine.Response.KerbSpacingM, 8, 65);
         VoiceCoilSide Side(bool left) => new(
-            C((left ? layers.RoadBumpL : layers.RoadBumpR) * continuousGain),
-            0,
+            C((left ? layers.RoadAmplitudeL : layers.RoadAmplitudeR) * continuousGain),
+            C((left ? layers.BumpL : layers.BumpR) * continuousGain),
             C((left ? kerb.L : kerb.R) * continuousGain),
             0,
             C(left ? layers.ImpactL : layers.ImpactR),

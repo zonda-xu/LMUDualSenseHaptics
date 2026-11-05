@@ -37,7 +37,7 @@ internal static class AccSurface151Tests
             Need(a.Shock[1]>0&&a.Shock[0]==0&&a.Shock[2]==0&&a.Shock[3]==0);
             Need(loop.Layers.RoadR>loop.Layers.RoadL&&output.RightActuator>output.LeftActuator);
             var cmd=VoiceCoilCommand.Create(loop.Signals.RoadSignals,loop.Layers,f,.01,p,1,1);
-            Need(cmd.Right.Road>cmd.Left.Road&&cmd.Right.Kerb==0);
+            Need(cmd.Right.Road>cmd.Left.Road&&cmd.Right.Bump>0&&cmd.Right.Kerb==0);
             var synth=new VoiceCoilSynthesizer(48000);float[] pcm=new float[960];synth.Render(cmd,pcm,.01);
             Need(synth.Levels.RightPeak>synth.Levels.LeftPeak&&pcm.Where((_,i)=>i%4<2).All(x=>x==0));
         });
@@ -70,6 +70,18 @@ internal static class AccSurface151Tests
             Need(loop.Signals.SurfaceDynamics.RearDrag.Active);
             var gap=Frame(18,.25,.10) with{CarId="two",VehicleModel="Other",SourceTimeSec=.60};loop.Tick(gap,.18,p);
             Need(!loop.Signals.SurfaceDynamics.RearDrag.Active,"physics-time discontinuity kept stale event");
+        });
+        check("1.5.1 disabled road and grip channels silence their independent PCM voices",()=>
+        {
+            var p=new Profile{Road=new(false,0),GripSlip=new(false,0)};var loop=new FeedbackLoop();
+            for(int n=0;n<6;n++)
+            {
+                var f=Frame(n,.25,.10);if(n>0)f=f with{Wheels=f.Wheels.Select((w,i)=>i==0?w with{SuspDeflectionM=.004f}:w).ToImmutableArray()};
+                loop.Tick(f,f.CapturedAtSec,p);
+                var cmd=VoiceCoilCommand.Create(loop.Signals.RoadSignals,loop.Layers,f,f.CapturedAtSec,p,1,1);
+                Need(cmd.Left.Road==0&&cmd.Left.Bump==0&&cmd.Left.FrontSlip==0&&cmd.Left.RearSlip==0&&cmd.Left.RearDrag==0);
+                Need(cmd.Right.Road==0&&cmd.Right.Bump==0&&cmd.Right.FrontSlip==0&&cmd.Right.RearSlip==0&&cmd.Right.RearDrag==0);
+            }
         });
         check("1.5.1 independent front, rear and drag voices generate distinct PCM",()=>
         {

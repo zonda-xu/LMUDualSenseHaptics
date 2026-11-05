@@ -62,8 +62,8 @@ def verify(job):
             assert any(row['RawTc'] for row in driving) and any(not row['RawTc'] for row in driving)
             assert peaks['Tc'] == .75
         if scene in ('left-kerb', 'right-kerb', 'landing'):
-            # ACC-inspired ordinary-road layer is intentionally capped below the former v1.5 curve.
-            assert .005 < peaks['Road'] <= .08
+            # ACC-inspired ordinary-road layer is intentionally capped bounded for the ordinary and strong-shock layers.
+            assert .005 < peaks['Road'] <= .20
             if scene != 'landing':
                 side = 'LeftActuator' if scene == 'left-kerb' else 'RightActuator'
                 other = 'RightActuator' if scene == 'left-kerb' else 'LeftActuator'

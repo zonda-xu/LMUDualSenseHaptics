@@ -2,7 +2,7 @@ using LMUDualSenseHaptics.Core;
 using LMUDualSenseHaptics.Physics;
 using static LMUDualSenseHaptics.Physics.Maths;
 namespace LMUDualSenseHaptics.Haptics;
-public readonly record struct GripLayers(double RoadL,double RoadR,double SlipL,double SlipR,double ImpactL,double ImpactR,double Centered,double EngineL,double EngineR,double SpatialL,double SpatialR,double KerbL=0,double KerbR=0, double RoadBumpL=0,double RoadBumpR=0,double FrontSlipL=0,double FrontSlipR=0,double RearSlipL=0,double RearSlipR=0,double RearDragL=0,double RearDragR=0,double FrontShare=.5);
+public readonly record struct GripLayers(double RoadL,double RoadR,double SlipL,double SlipR,double ImpactL,double ImpactR,double Centered,double EngineL,double EngineR,double SpatialL,double SpatialR,double KerbL=0,double KerbR=0, double RoadAmplitudeL=0,double RoadAmplitudeR=0,double FrontSlipL=0,double FrontSlipR=0,double RearSlipL=0,double RearSlipR=0,double RearDragL=0,double RearDragR=0,double FrontShare=.5,double BumpL=0,double BumpR=0);
 public static class GripEngine
 {
     public static GripLayers Render(SignalEngine e,TelemetryFrame f,double now,Profile p)
@@ -17,9 +17,14 @@ public static class GripEngine
         double side=dynamics.Side;
         // ACC's short shock window carries side ownership; the v1.5 kerb path
         // remains unchanged. Front/rear are encoded as different cadence.
-        double strongest=Math.Max(Math.Max(shock[0],shock[1]),Math.Max(shock[2],shock[3]))*.08*p.Road.Gain;
-        double roadL=strongest*(side>0?1-.985*side:1);
-        double roadR=strongest*(side<0?1+.985*side:1);
+        double peak=Math.Max(Math.Max(shock[0],shock[1]),Math.Max(shock[2],shock[3]));
+        double strongest=peak*.08*p.Road.Gain;
+        double leftShare=side>0?1-.985*side:1,rightShare=side<0?1+.985*side:1;
+        double roadL=strongest*leftShare,roadR=strongest*rightShare;
+        // A strong suspension/load impulse also excites a separate lower-frequency
+        // bump oscillator; ordinary road texture keeps its own carrier.
+        double bump=Smooth(.65,.95,peak)*.12*p.Road.Gain;
+        double bumpL=bump*leftShare,bumpR=bump*rightShare;
         double frontShare=.5+.5*dynamics.Axle;
         double surfaceWave=frontShare*Pulse(now,48,.18,1.45)+(1-frontShare)*Pulse(now,13,.08,3.2);
         double frontWave=Pulse(now,76,.14,1.35),rearWave=Pulse(now,16,.06,3.6);
@@ -34,6 +39,6 @@ public static class GripEngine
         impact=Soft(impact,A(e.Scrape,.08)*p.Impact.Gain);
         double centered=Math.Max(A(e.Abs,.105)*p.Abs.Gain*.12,A(e.Shift,.052)*p.Shift.Gain*.22);
         double engine=f.MaxRpm>0?C(f.Rpm/f.MaxRpm)*p.Engine.Gain*.25*Pulse(now,22,.25,1.3):0;
-        return new(roadL*surfaceWave,roadR*surfaceWave,sl,sr,impact*(e.ImpactPan>0?.25:1),impact*(e.ImpactPan<0?.25:1),centered,engine*.8,engine,spatialL,spatialR,roads.KerbL,roads.KerbR, roadL,roadR,slip[0]*.58,slip[1]*.58,slip[2]*.68,slip[3]*.68,drag*.52,drag*.31,frontShare);
+        return new(Math.Max(roadL*surfaceWave,bumpL),Math.Max(roadR*surfaceWave,bumpR),sl,sr,impact*(e.ImpactPan>0?.25:1),impact*(e.ImpactPan<0?.25:1),centered,engine*.8,engine,spatialL,spatialR,roads.KerbL,roads.KerbR, roadL,roadR,slip[0]*.58,slip[1]*.58,slip[2]*.68,slip[3]*.68,drag*.52,drag*.31,frontShare,bumpL,bumpR);
     }
 }

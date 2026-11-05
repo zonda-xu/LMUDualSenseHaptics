@@ -55,5 +55,7 @@ internal sealed class LogSampling
     {lock(errorGate){if(message==error&&now-errorAt<10)return false;error=message;errorAt=now;return true;}}
 }
 internal sealed record OutputRecord(string Kind,double At,long Sequence,double SourceCapturedAt,double WriteMilliseconds,bool Success,FeedbackFrame Frame,
-    double Abs,double Lock,double Tc,double Spin,double Shift,double Redline,GripLayers Layers,double PreLeft,double PreRight,double EngineGain,double ContinuousGain,double OppositeGain,long ClippedFrames,string ParameterSource,ChannelLevels Channels,string LeftTriggerSource,string RightTriggerSource,VoiceCoilCommand? AudioCommand=null,bool AudioReady=false,BrakeDiagnostic? Brake=null);
+    double Abs,double Lock,double Tc,double Spin,double Shift,double Redline,GripLayers Layers,double PreLeft,double PreRight,double EngineGain,double ContinuousGain,double OppositeGain,long ClippedFrames,string ParameterSource,ChannelLevels Channels,string LeftTriggerSource,string RightTriggerSource,VoiceCoilCommand? AudioCommand=null,bool AudioReady=false,BrakeDiagnostic? Brake=null,SurfaceDiagnostic? Surface=null);
 internal sealed record BrakeDiagnostic(double Prompt,double EstimatedLimit,double Confidence,int IndependentStops,double LoadFactor,double DemandRate,string Context,string Evidence,double Slip,double Risk,int ValidSlipWheels,bool WarningActive,bool LockActive);
+
+internal sealed record SurfaceDiagnostic(double[] WheelShock,double[] WheelSlip,double Side,double Axle,double RearDragStrength,bool RearDragActive,bool RearDragRecovery,bool YawAvailable);
