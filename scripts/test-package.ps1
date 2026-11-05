@@ -97,9 +97,10 @@ try {
         # Physical left/right and L2/R2 meters must not exchange places in Arabic.
         $left = Find-Id 'BrakeMeter'; $right = Find-Id 'ThrottleMeter'
         if ($left.Current.BoundingRectangle.X -ge $right.Current.BoundingRectangle.X) { throw 'Physical trigger order reversed.' }
-        $culture = [Globalization.CultureInfo]::GetCultureInfo($code).TwoLetterISOLanguageName
-        $actualCulture = [Globalization.CultureInfo]::GetCultureInfo($import.Current.Culture).TwoLetterISOLanguageName
-        if ($actualCulture -ne $culture) { throw "Wrong UI language metadata: $code ($actualCulture)" }
+        # WPF buttons may return UIA Culture=0. Check visible text and the actual RTL layout.
+        $languageX = (Find-Id 'LanguageChoice').Current.BoundingRectangle.X
+        $themeX = (Find-Id 'ThemeButton').Current.BoundingRectangle.X
+        if (($code -eq 'ar') -ne ($languageX -gt $themeX)) { throw "Incorrect reading direction: $code" }
         $import.GetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern).Invoke()
         $dialog = Wait-Dialog $catalog['Text_96618B11E9']
         $dialog.GetCurrentPattern([System.Windows.Automation.WindowPattern]::Pattern).Close()
