@@ -42,7 +42,7 @@ public sealed class LmuLayout
         var f=new TelemetryFrame(++sequence,now,0,true,driving,paused,car,vehicleClass,
             (float)Math.Sqrt((double)vx*vx+(double)vy*vy+(double)vz*vz),vx,vy,vz,F(b,v+208),F(b,v+216),F(b,v+224),
             F(b,v+396),F(b,v+388),F(b,v+404),I(b,v+352),F(b,v+356),F(b,v+532),B(b,v+746),B(b,v+747),
-            b[v+757]>0,b[v+751]>0,wheels.MoveToImmutable(),source,Version,F(b,v+552),F(b,v+560),model,b[v+756],Unit(b,v+428),Unit(b,v+664),b[v+760],Optional(b,v+712),b[v+744]<=3?b[v+744]:null);
+            b[v+757]>0,b[v+751]>0,wheels.MoveToImmutable(),source,Version,F(b,v+552),F(b,v+560),model,b[v+756],Unit(b,v+428),Unit(b,v+664),b[v+760],Optional(b,v+712),b[v+744]<=3?b[v+744]:null,Optional(b,v+312));
         f.Validate();previousTime=source;previousCar=car;previousDriving=driving;previousPaused=paused;return f;
     }
     // Optional model inputs must not take down the entire haptics stream.

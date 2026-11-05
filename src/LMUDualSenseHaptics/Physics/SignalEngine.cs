@@ -15,6 +15,7 @@ public sealed class SignalEngine
 {
     public BrakeSignalEngine Braking {get;}=new();
     public RoadSignalEngine RoadSignals {get;}=new();
+    public AccSurfaceDynamics SurfaceDynamics {get;}=new();
     public WheelState[] Wheels {get;private set;}=Enumerable.Range(0,4).Select(_=>new WheelState()).ToArray();
     public double LegacyLock;
     public double Abs,Lock,Tc,Spin,Shift,Redline,SidePan,FrontShare,LeftRoad,RightRoad,Impact,ImpactPan,Scrape;
@@ -25,7 +26,7 @@ public sealed class SignalEngine
     private readonly Queue<(double T,Vector2 V)> velocityHistory=new();
     public void Reset()
     {
-        RoadSignals.Reset();Braking.Reset();
+        RoadSignals.Reset();Braking.Reset();SurfaceDynamics.Reset();
         Wheels=Enumerable.Range(0,4).Select(_=>new WheelState()).ToArray();
         LegacyLock=Abs=Lock=Tc=Spin=Shift=Redline=SidePan=FrontShare=LeftRoad=RightRoad=Impact=ImpactPan=Scrape=0;
         ShiftStart=ImpactStart=pendingImpactUntil=lastImpactObserved=double.NegativeInfinity;
@@ -46,6 +47,7 @@ public sealed class SignalEngine
                 Wheels[i].PreviousSusp=f.Wheels[i].SuspDeflectionM;
                 Wheels[i].ForceReference=f.Wheels[i].SuspForceN;Wheels[i].LoadReference=f.Wheels[i].TireLoadN;
             }
+            SurfaceDynamics.Update(f,Wheels,.020,p.RoadSensitivity/100.0,c.ContactMinLoad,RoadSignals.Wheels.Any(w=>w.Kerb>.02));
             Braking.Update(f,null,p,c);
             velocityHistory.Enqueue((f.CapturedAtSec,new(f.LocalVxMps,f.LocalVzMps)));return;
         }
@@ -114,6 +116,9 @@ public sealed class SignalEngine
                 ? Env(z.Slip,Math.Max(longitudinal,lateral*c.LateralWeight)*Smooth(5,15,f.SpeedMps),dt,.008,.065) : 0;
             z.PreviousSusp=q.SuspDeflectionM;
         }
+        double surfaceDt=f.SourceTimeSec-previous.SourceTimeSec;
+        if(surfaceDt>.120){SurfaceDynamics.Reset();surfaceDt=.020;}
+        SurfaceDynamics.Update(f,Wheels,surfaceDt,p.RoadSensitivity/100.0,c.ContactMinLoad,RoadSignals.Wheels.Any(w=>w.Kerb>.02));
         double bg=Smooth(.08,.28,f.Brake01),tg=Smooth(.08,.32,f.Throttle01),sg=Smooth(4,16,f.SpeedMps);
         double ar=f.AbsIntervening?1:0,tr=f.TcIntervening?1:0;
         Abs=Env(Abs,ar*bg,dt,.032,.105);Tc=Env(Tc,tr*tg,dt,.060,.135);

@@ -47,11 +47,13 @@ public sealed class VoiceCoilSynthesizer
     private sealed class Oscillator(double phaseOffset)
     {
         private double roadPhase, detailPhase, bumpPhase, kerbPhase, cadencePhase, slipPhase, enginePhase, impactPhase;
-        private double road, bump, kerb, slip, engine, impact, cue;
+        private double frontSlipPhase,rearSlipPhase,rearDragPhase,frontCadence,rearCadence,dragCadence,dragSlow,roadFrontCadence,roadRearCadence;
+        private double road, bump, kerb, slip, engine, impact, cue,frontSlip,rearSlip,rearDrag;
         private double dcInput, dcOutput;
         public void Reset()
         {
-            road = bump = kerb = slip = engine = impact = cue = dcInput = dcOutput = 0;
+            road = bump = kerb = slip = engine = impact = cue = frontSlip = rearSlip = rearDrag = dcInput = dcOutput = 0;
+            frontSlipPhase=rearSlipPhase=rearDragPhase=frontCadence=rearCadence=dragCadence=dragSlow=roadFrontCadence=roadRearCadence=phaseOffset;
             roadPhase = detailPhase = bumpPhase = kerbPhase = cadencePhase = slipPhase = enginePhase = impactPhase = phaseOffset;
         }
         private static double Sine(ref double phase, double hz, double dt)
@@ -66,6 +68,7 @@ public sealed class VoiceCoilSynthesizer
             kerb += (Safe(s.Kerb) - kerb) * ramp; slip += (Safe(s.Slip) - slip) * ramp;
             impact += (Safe(s.Impact) - impact) * ramp; engine += (Safe(s.Engine) - engine) * ramp;
             cue += (Safe(s.Cue) - cue) * ramp;
+            frontSlip+=(Safe(s.FrontSlip)-frontSlip)*ramp;rearSlip+=(Safe(s.RearSlip)-rearSlip)*ramp;rearDrag+=(Safe(s.RearDrag)-rearDrag)*ramp;
             double texture = .78 * Sine(ref roadPhase, Hz(c.RoadHz, 75), dt) +
                              .22 * Sine(ref detailPhase, Hz(c.RoadHz * 1.617, 121), dt);
             double cadence = .5 + .5 * Sine(ref cadencePhase, Hz(s.KerbRateHz, 24), dt);
@@ -73,13 +76,23 @@ public sealed class VoiceCoilSynthesizer
             double k = Sine(ref kerbPhase, Hz(c.KerbHz, 110), dt) * serration;
             double b = Sine(ref bumpPhase, Hz(c.BumpHz, 45), dt);
             double loss = Sine(ref slipPhase, 155, dt);
+            static double Pulse(double x,double floor,double power)=>floor+(1-floor)*Math.Pow(.5+.5*x,power);
+            double frontPulse=Pulse(Sine(ref frontCadence,76,dt),.14,1.35);
+            double rearPulse=Pulse(Sine(ref rearCadence,16,dt),.06,3.6);
+            double dragPulse=(.64+.36*(.5+.5*Sine(ref dragCadence,36,dt)))*(.88+.12*(.5+.5*Sine(ref dragSlow,4.5,dt)));
+            double frontWave=Sine(ref frontSlipPhase,155,dt)*frontPulse;
+            double rearWave=Sine(ref rearSlipPhase,95,dt)*rearPulse;
+            double dragWave=Sine(ref rearDragPhase,70,dt)*dragPulse;
+            double roadPulse=Safe(s.FrontShare)*Pulse(Sine(ref roadFrontCadence,48,dt),.18,1.45)+
+                (1-Safe(s.FrontShare))*Pulse(Sine(ref roadRearCadence,13,dt),.08,3.2);
             double motor = Sine(ref enginePhase, Hz(c.EngineHz, 60), dt);
             double hit = Sine(ref impactPhase, 52, dt);
             // Road/kerb dominate background layers. A kerb does not erase road dynamics.
             double priority = Math.Max(Math.Max(road, kerb), Math.Max(bump, impact));
             double background = 1 - Math.Clamp(priority * 1.8, 0, .95);
-            double x = road * texture * (1 - .45 * bump) * (1 - .30 * kerb) +
+            double x = road * roadPulse * texture * (1 - .45 * bump) * (1 - .30 * kerb) +
                        .85 * bump * b + 1.15 * kerb * k + .55 * slip * loss +
+                       .55*frontSlip*frontWave + .55*rearSlip*rearWave + .75*rearDrag*dragWave +
                        .85 * impact * hit + .45 * cue * hit + .65 * engine * motor * background;
             // Remove sub-audible/DC energy before limiting; no nonzero "minimum" at rest.
             double dc = x - dcInput + Math.Exp(-2 * Math.PI * 12 * dt) * dcOutput;

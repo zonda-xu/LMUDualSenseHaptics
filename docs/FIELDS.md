@@ -25,6 +25,7 @@
 | vehicle | mVehicleName / Model |32 /796| UTF-8 64 /30 字节；独立读取，不猜测类别枚举 |
 | vehicle | mLocalVel x/y/z |184/192/200| double m/s；X 横向，Y 垂直，Z 纵向；正负待驾驶验证 |
 | vehicle | mLocalAccel x/y/z |208/216/224| double m/s²；轴正负待验证 |
+| vehicle | mLocalRot.y |312| double rad/s，局部 Y 轴角速度；无效时不输出后轴失抓层，车型与方向仍需实测 |
 | vehicle | mGear |352| int32，-1..20 合理性检查 |
 | vehicle | mEngineRPM / MaxRPM |356/532| double RPM；最大值无效时不做红线提示 |
 | vehicle | throttle / brake / steering |388/396/404| double，0..1 /0..1 /-1..1 |

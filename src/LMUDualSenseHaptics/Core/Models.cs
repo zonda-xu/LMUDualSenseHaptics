@@ -27,7 +27,7 @@ public sealed record TelemetryFrame(long Sequence, double CapturedAtSec, double 
     bool? AbsAvailable, bool? TcAvailable, ImmutableArray<WheelFrame> Wheels,
     double SourceTimeSec = 0, int GameVersion = 0, float LastImpactTime = 0, float LastImpactMagnitude = 0, string VehicleModel = "", byte? AbsSetting = null,
     float? FilteredBrake01 = null, float? RearBrakeBias = null, byte? BrakeMigration = null,
-    float? MotorTorqueNm = null, byte? MotorState = null)
+    float? MotorTorqueNm = null, byte? MotorState = null, float? LocalYawRate = null)
 {
     public Vector3 Velocity => new(LocalVxMps, LocalVyMps, LocalVzMps);
     public Vector3 Acceleration => new(AccelX, AccelY, AccelZ);

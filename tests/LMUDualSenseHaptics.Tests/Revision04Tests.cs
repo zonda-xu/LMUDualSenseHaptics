@@ -124,19 +124,20 @@ internal static class Revision04Tests
             }
             Assert(peak>20,$"peak {peak}");
         });
-        check("v0.4 wheel vertical position is an independent road input",()=>
+        check("1.5.1 wheel vertical position remains available to the preserved kerb detector",()=>
         {
             var loop=new FeedbackLoop();var profile=RoadOnly();loop.Tick(Frame(0,0),0,profile);
             var f=Wheel(Frame(1,.01),1,w=>w with{WheelYLocationM=.003f});var output=loop.Tick(f,.01,profile);
-            Assert(output.RightActuator>20&&loop.Signals.RoadSignals.Wheels[1].Texture>0);
+            Assert(output.RightActuator==0&&loop.Signals.RoadSignals.Wheels[1].Texture>0&&loop.Signals.SurfaceDynamics.Shock[1]==0);
         });
-        check("v0.4 tire deflection and load changes independently reach road channel",()=>
+        check("1.5.1 tyre compression remains kerb evidence and load drives ACC road shock",()=>
         {
             foreach(bool tire in new[]{false,true})
             {
                 var loop=new FeedbackLoop();var profile=RoadOnly();loop.Tick(Frame(0,0),0,profile);
                 var f=Wheel(Frame(1,.01),0,w=>tire?w with{TireVerticalDeflectionM=.001f}:w with{TireLoadN=3400});
-                Assert(loop.Tick(f,.01,profile).LeftActuator>20);
+                loop.Tick(f,.01,profile);
+                Assert(tire?loop.Signals.RoadSignals.Wheels[0].Texture>0:loop.Signals.SurfaceDynamics.Shock[0]>0);
             }
         });
         check("v0.4 stationary or airborne tagged kerb has no road/kerb output",()=>

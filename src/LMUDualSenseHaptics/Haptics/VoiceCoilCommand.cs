@@ -5,7 +5,8 @@ using static LMUDualSenseHaptics.Physics.Maths;
 namespace LMUDualSenseHaptics.Haptics;
 
 public readonly record struct VoiceCoilSide(double Road, double Bump, double Kerb,
-    double Slip, double Impact, double Engine, double Cue, double KerbRateHz)
+    double Slip, double Impact, double Engine, double Cue, double KerbRateHz,
+    double FrontSlip=0,double RearSlip=0,double RearDrag=0,double FrontShare=.5)
 {
     public static VoiceCoilSide Zero => default;
 }
@@ -23,10 +24,6 @@ public sealed record VoiceCoilCommand(bool Enabled, double ValidUntil,
         if (!c.Enabled) return Off;
         double age = Math.Max(0, now - frame.CapturedAtSec);
         double crossfeed = .28 * (1 - profile.SpatialSeparation / 100.0);
-        double Road(int i) => RoadHaptics.Response(engine.Wheels[i].Texture *
-            Math.Exp(-age / engine.Response.ReleaseSeconds), engine.Response) * profile.Road.Gain;
-        double Bump(int i) => RoadHaptics.Response(engine.Wheels[i].Bump *
-            Math.Exp(-age / .105), engine.Response) * profile.Road.Gain;
         double Kerb(int i) => RoadHaptics.Response(engine.Wheels[i].Kerb *
             Math.Exp(-age / .065), engine.Response) * profile.Kerb.Gain;
         (double L, double R) Map(Func<int, double> value)
@@ -34,16 +31,19 @@ public sealed record VoiceCoilCommand(bool Enabled, double ValidUntil,
             double l = Math.Max(value(0), value(2)), r = Math.Max(value(1), value(3));
             return (Math.Max(l, r * crossfeed), Math.Max(r, l * crossfeed));
         }
-        var road = Map(Road); var bump = Map(Bump); var kerb = Map(Kerb);
+        var kerb = Map(Kerb);
         // Spacing is a tunable synthetic cue; telemetry does not provide a kerb waveform.
         double cadence = Math.Clamp(frame.SpeedMps / engine.Response.KerbSpacingM, 8, 65);
         VoiceCoilSide Side(bool left) => new(
-            C((left ? road.L : road.R) * continuousGain),
-            C((left ? bump.L : bump.R) * continuousGain),
+            C((left ? layers.RoadBumpL : layers.RoadBumpR) * continuousGain),
+            0,
             C((left ? kerb.L : kerb.R) * continuousGain),
-            C((left ? layers.SlipL : layers.SlipR) * continuousGain),
+            0,
             C(left ? layers.ImpactL : layers.ImpactR),
-            C((left ? layers.EngineL : layers.EngineR) * engineGain), C(layers.Centered), cadence);
+            C((left ? layers.EngineL : layers.EngineR) * engineGain), C(layers.Centered), cadence,
+            C((left ? layers.FrontSlipL : layers.FrontSlipR)*continuousGain),
+            C((left ? layers.RearSlipL : layers.RearSlipR)*continuousGain),
+            C((left ? layers.RearDragL : layers.RearDragR)*continuousGain), layers.FrontShare);
         // A separate 75 ms watchdog also protects against a stopped HID/output thread.
         double deadline = Math.Min(now + .075,
             frame.CapturedAtSec - frame.SourceAgeSec + profile.TelemetryStaleMs / 1000.0);

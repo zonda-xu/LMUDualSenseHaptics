@@ -190,7 +190,7 @@ Check("matching vehicle preset has priority and switching clears history",()=>
     var loop=new FeedbackLoop();var profile=p with{VehiclePresets=[preset]};
     loop.Tick(Frame(0,0),0,profile);
     var f=Frame(1,.01) with{Wheels=Frame(1,.01).Wheels.Select(w=>w with{SuspDeflectionM=.03f,SuspForceN=7000,TireLoadN=7000}).ToImmutableArray()};
-    loop.Tick(f,.01,profile);Assert(loop.ParameterSource.Contains("已验证车型预设")&&loop.Layers.RoadL==0);
+    loop.Tick(f,.01,profile);Assert(loop.ParameterSource.Contains("已验证车型预设")&&loop.Layers.RoadL>0,$"preset={loop.ParameterSource} road={loop.Layers.RoadL}");
     loop.Tick(f,.014,p);Assert(loop.ParameterSource.Contains("默认初始参数")&&loop.Layers.RoadL==0);
     f=Frame(2,.02) with{AccelX=40,LastImpactTime=.02f,LastImpactMagnitude=10};
     loop.Tick(f,.02,p);Assert(loop.Signals.Impact>0);
@@ -236,7 +236,7 @@ Check("default road event reaches grip mixer and merged USB report",()=>
     loop.Tick(Frame(0,0),0,profile);
     var f=Frame(1,.01) with{Wheels=Frame(1,.01).Wheels.Select((w,i)=>i==0?w with{SuspDeflectionM=.04f,SuspForceN=7000,TireLoadN=7000}:w).ToImmutableArray()};
     var output=loop.Tick(f,.01,profile);byte[] report=new byte[48];DualSenseReportBuilder.Build(output,report);
-    Assert(loop.Signals.LeftRoad>0&&loop.Layers.RoadL>0&&loop.Channels.Road>0&&output.LeftActuator>output.RightActuator);
+    Assert(loop.Signals.LeftRoad>0&&loop.Layers.RoadL>0&&loop.Channels.Road>0&&output.LeftActuator>output.RightActuator,$"leftRoad={loop.Signals.LeftRoad} layer={loop.Layers.RoadL} channel={loop.Channels.Road} left={output.LeftActuator} right={output.RightActuator} shock={loop.Signals.SurfaceDynamics.Shock[0]}");
     Assert(report[4]==output.LeftActuator&&report[3]==output.RightActuator&&report[11]==5&&report[22]==0x21);
 });
 Check("default lateral slip works before radius learning",()=>
@@ -385,6 +385,7 @@ Brake122Tests.Run(Check);
 Brake13Tests.Run(Check);
 VehicleTriggerTests.Run(Check);
 Revision15Tests.Run(Check);
+AccSurface151Tests.Run(Check);
 Console.WriteLine($"RESULT {passed} passed, {failed} failed (synthetic, sanitized recorded fields and fake HID; no hardware claims)");
 Environment.ExitCode=failed==0?0:1;
 

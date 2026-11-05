@@ -45,7 +45,8 @@ check('v0.3 preserved TriggerEffect encoder',hashlib.sha256((src/'Hardware/Trigg
 original=json.loads((root/'tests/baselines/v0.4-preserved-fingerprints.json').read_text(encoding='utf-8'))
 for filename,expected in original['unchanged_files'].items():
     # v1.2 deliberately replaces L2 mapping and adds brake telemetry/diagnostics.
-    if filename in {'Haptics/TriggerEngine.cs','Telemetry/LmuLayout.cs','Runtime/FeedbackLoop.cs'}: continue
+    # v1.5.1 replaces non-kerb grip rendering with the documented ACC adaptation.
+    if filename in {'Haptics/TriggerEngine.cs','Telemetry/LmuLayout.cs','Runtime/FeedbackLoop.cs','Haptics/GripEngine.cs'}: continue
     check('v0.4 byte-identical protected source: '+filename,hashlib.sha256((src/filename).read_bytes()).hexdigest()==expected)
 
 triggers=(src/'Haptics/TriggerEngine.cs').read_text(encoding='utf-8')
